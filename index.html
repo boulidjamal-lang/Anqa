@@ -1616,11 +1616,33 @@
       border-color: var(--primary); color: var(--primary-txt);
     }
 
-    .session-exo-bloc { border-bottom: 1px solid var(--verre-brd); padding-bottom: 16px; margin-bottom: 16px; }
-    .session-exo-bloc:last-of-type { border-bottom: none; margin-bottom: 6px; }
+    .session-exo-bloc {
+      background: var(--verre-creux); border-radius: 16px;
+      padding: 14px 15px 16px; margin-bottom: 14px;
+    }
+    .session-exo-bloc:last-of-type { margin-bottom: 6px; }
+    .session-exo-entete { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
     .session-exo-titre { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+    .session-exo-nom-ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .session-exo-numero {
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary); color: var(--primary-txt);
+      font-size: 0.68rem; font-weight: 800;
+    }
     .session-exo-nom { font-weight: 800; font-size: 0.92rem; }
-    .session-exo-derniere { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px; }
+    .session-exo-derniere { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Dans un superset, les exercices restent à l'intérieur d'un même cadre
+       (celui du bloc superset plus bas) : leur donner aussi un fond de carte
+       créerait une carte dans une carte. On les sépare juste par un filet
+       pointillé discret entre eux, le cadre du superset faisant déjà office
+       de regroupement visuel. */
+    .session-superset-bloc .session-exo-bloc {
+      background: transparent; border-radius: 0; padding: 0 0 14px; margin-bottom: 14px;
+      border-bottom: 1px dashed var(--verre-brd);
+    }
+    .session-superset-bloc .session-exo-bloc:last-of-type { border-bottom: none; padding-bottom: 2px; margin-bottom: 6px; }
 
     /* --- Historique des séances --- */
     .historique-carte {
@@ -1653,14 +1675,13 @@
       background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 28px;
     }
     .exo-en-programme-technique select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
-    /* Le bloc superset entoure plusieurs .session-exo-bloc d'un même pointillé :
-       leur séparation interne (border-bottom) reste, seul le dernier de la
-       liste — qu'il soit ou non dans ce bloc — perd la sienne. */
+    /* Le bloc superset entoure plusieurs .session-exo-bloc d'un même pointillé —
+       leur séparation interne est gérée plus haut, par la règle
+       .session-superset-bloc .session-exo-bloc. */
     .session-superset-bloc {
       border: 1.5px dashed var(--accent); border-radius: 16px;
       padding: 14px 14px 2px; margin-bottom: 16px;
     }
-    .session-superset-bloc .session-exo-bloc:last-of-type { border-bottom: none; margin-bottom: 6px; }
     .session-superset-titre {
       font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 800;
       color: var(--accent); margin-bottom: 12px;
@@ -11108,6 +11129,7 @@ function renderSessionModal() {
   initSwipeSeries('session-exercices-container');
 }
 function renderSessionExerciceBlocHTML(exo, ei) {
+  const exerciceComplet = trouverExercice(exo.exerciceId);
   const derniere = dernierePerfExercice(exo.exerciceId);
   const infoDerniere = derniere
     ? 'Dernière fois (' + formatDateDisplay(derniere.date) + ') : ' +
@@ -11124,15 +11146,23 @@ function renderSessionExerciceBlocHTML(exo, ei) {
       </div>
     </div>`).join('');
   return `<div class="session-exo-bloc">
-    <div class="session-exo-titre">
-      <button type="button" class="session-exo-nom" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left;"
-              onclick="afficherFicheExerciceBiblio('${exo.exerciceId}')">${escapeHtml(trouverExercice(exo.exerciceId) ? libelleExercice(trouverExercice(exo.exerciceId)) : exo.nom)}</button>
-      <div style="display:flex; gap:4px; align-items:center;">
-        <button type="button" class="btn-icone" onclick="remplacerExerciceSession(${ei})" aria-label="Remplacer cet exercice" title="Remplacer cet exercice (pour cette séance uniquement)">🔁</button>
-        <button class="btn-delete" onclick="retirerExerciceSession(${ei})" aria-label="Retirer l'exercice">&times;</button>
+    <div class="session-exo-entete">
+      <span class="exo-ligne-vignette" aria-hidden="true">${exerciceComplet ? medaillonExercice(exerciceComplet) : ''}</span>
+      <div style="flex:1; min-width:0;">
+        <div class="session-exo-titre">
+          <div class="session-exo-nom-ligne">
+            <span class="session-exo-numero">${ei + 1}</span>
+            <button type="button" class="session-exo-nom" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-align:left;"
+                    onclick="afficherFicheExerciceBiblio('${exo.exerciceId}')">${escapeHtml(exerciceComplet ? libelleExercice(exerciceComplet) : exo.nom)}</button>
+          </div>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <button type="button" class="btn-icone" onclick="remplacerExerciceSession(${ei})" aria-label="Remplacer cet exercice" title="Remplacer cet exercice (pour cette séance uniquement)">🔁</button>
+            <button class="btn-delete" onclick="retirerExerciceSession(${ei})" aria-label="Retirer l'exercice">&times;</button>
+          </div>
+        </div>
+        <div class="session-exo-derniere">${escapeHtml(infoDerniere)}</div>
       </div>
     </div>
-    <div class="session-exo-derniere">${escapeHtml(infoDerniere)}</div>
     <div class="serie-table">
       <div class="serie-entete serie-entete--4col"><span>Série</span><span>Poids (kg)</span><span>Répétitions</span><span>✓</span></div>
       ${lignesSeries}
