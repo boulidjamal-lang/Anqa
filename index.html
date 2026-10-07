@@ -1013,13 +1013,13 @@
       padding: 12px; background: var(--verre-creux);
       border: 1px solid var(--verre-brd); border-radius: 14px;
     }
-    .aliments-filtres input {
+    .aliments-filtres input, .aliments-filtres select {
       width: 100%; padding: 9px 12px; min-height: 40px;
       background: var(--verre); border: 1px solid transparent;
       color: var(--text); border-radius: 10px;
       font-size: 0.88rem; font-family: inherit; outline: none;
     }
-    .aliments-filtres input:focus { border-color: var(--primary); }
+    .aliments-filtres input:focus, .aliments-filtres select:focus { border-color: var(--primary); }
 
     .admin-aliment-card {
       background: var(--verre-creux); border: 0;
@@ -2632,6 +2632,10 @@
     <div class="aliments-filtres">
       <input type="text" id="exercices-filter-nom" placeholder="&#128269; Nom de l'exercice" oninput="filtrerExercicesAdmin()" autocomplete="off">
       <input type="text" id="exercices-filter-createur" placeholder="&#128100; Email du créateur" oninput="filtrerExercicesAdmin()" autocomplete="off">
+      <div style="display:flex; gap:8px;">
+        <select id="exercices-filter-groupe" style="flex:1; min-width:0;" onchange="filtrerExercicesAdmin()"></select>
+        <select id="exercices-filter-materiel" style="flex:1; min-width:0;" onchange="filtrerExercicesAdmin()"></select>
+      </div>
     </div>
 
     <div id="admin-exercices-feuille-liste"></div>
@@ -10980,19 +10984,22 @@ function dupliquerProgramme(id) {
 /* =====================================================================
    Sélecteur d'exercices (bibliothèque + ajout à un programme / une séance)
    ===================================================================== */
-function initFiltresPickerSiBesoin() {
-  const zg = document.getElementById('picker-filtre-groupe');
-  if (!zg.dataset.pret) {
+function initFiltresGroupeMateriel(idGroupe, idMateriel) {
+  const zg = document.getElementById(idGroupe);
+  if (zg && !zg.dataset.pret) {
     zg.dataset.pret = '1';
     zg.innerHTML = `<option value="">Tous les groupes</option>` +
       ORDRE_GROUPES.map(g => `<option value="${g}">${GROUPES_MUSCULAIRES[g]}</option>`).join('');
   }
-  const zm = document.getElementById('picker-filtre-materiel');
-  if (!zm.dataset.pret) {
+  const zm = document.getElementById(idMateriel);
+  if (zm && !zm.dataset.pret) {
     zm.dataset.pret = '1';
     zm.innerHTML = `<option value="">Tout matériel</option>` +
       ORDRE_MATERIELS.map(m => `<option value="${m}">${MATERIELS[m].ic} ${MATERIELS[m].label}</option>`).join('');
   }
+}
+function initFiltresPickerSiBesoin() {
+  initFiltresGroupeMateriel('picker-filtre-groupe', 'picker-filtre-materiel');
 }
 function ouvrirPickerExercices(mode) {
   pickerMode = mode;
@@ -12559,7 +12566,8 @@ async function supprimerAlimentPartage(aliment) {
 let adminExercicesCharges = [];
 
 async function afficherFeuillExercicesAdmin() {
-  ['exercices-filter-nom', 'exercices-filter-createur']
+  initFiltresGroupeMateriel('exercices-filter-groupe', 'exercices-filter-materiel');
+  ['exercices-filter-nom', 'exercices-filter-createur', 'exercices-filter-groupe', 'exercices-filter-materiel']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   ouvrirFeuille('feuille-admin-exercices');
   await chargerExercicesAdmin();
@@ -12612,16 +12620,20 @@ function filtrerExercicesAdmin() {
   minuteurFiltreExercices = setTimeout(() => {
     const nom = normaliserRecherche(document.getElementById('exercices-filter-nom')?.value || '');
     const createur = normaliserRecherche(document.getElementById('exercices-filter-createur')?.value || '');
+    const groupe = document.getElementById('exercices-filter-groupe')?.value || '';
+    const materiel = document.getElementById('exercices-filter-materiel')?.value || '';
     const correspond = adminExercicesCharges.filter(e => {
       if (nom && !normaliserRecherche(e.nom || '').includes(nom)) return false;
       if (createur && !normaliserRecherche(e.email || '').includes(createur)) return false;
+      if (groupe && e.groupe !== groupe) return false;
+      if (materiel && e.materiel !== materiel) return false;
       return true;
     });
     // Sans recherche, afficher 673 cartes d'un coup n'aide personne : on
     // montre les exercices perso/communauté en premier (les plus probables
     // à administrer), puis on plafonne l'affichage de la base.
     const LIMITE_SANS_FILTRE = 150;
-    const limiter = !nom && !createur && correspond.length > LIMITE_SANS_FILTRE;
+    const limiter = !nom && !createur && !groupe && !materiel && correspond.length > LIMITE_SANS_FILTRE;
     rendreExercicesAdmin(limiter ? correspond.slice(0, LIMITE_SANS_FILTRE) : correspond, limiter ? correspond.length : null);
   }, 300);
 }
