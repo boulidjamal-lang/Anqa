@@ -824,7 +824,7 @@
     .feuille.show { display: flex; }
     /* Ouverte depuis la feuille « Aliments partagés » (z-index 1100), cette
        modale doit se poser par-dessus, pas derrière. */
-    #modal-edit-aliment { z-index: 1200; }
+    #modal-edit-aliment, #modal-edit-exercice-admin { z-index: 1200; }
     /* Ouverte depuis #compte-modal (z-index 1000 par défaut), doit se poser
        par-dessus, pas derrière. */
     #modal-creer-compte, #modal-nouveau-mdp { z-index: 1100; }
@@ -2167,6 +2167,13 @@
       <p class="note">Tous les aliments créés par les utilisateurs, visibles dans la recherche de chacun.</p>
     </div>
 
+    <div class="admin-separateur">
+      <button class="btn btn-primary" type="button" onclick="afficherFeuillExercicesAdmin()">
+        &#127947;&#65039; Exercices personnalisés
+      </button>
+      <p class="note">Tous les exercices personnalisés créés par les utilisateurs, visibles dans la bibliothèque de chacun. (La base d'exercices d'origine n'est pas ici : elle vit dans le code de l'appli, pas dans la base de données.)</p>
+    </div>
+
     <div id="admin-stats-zone" class="hidden">
       <div class="titre-section">📊 Statistiques — <span id="admin-stats-nom"></span></div>
 
@@ -2610,6 +2617,52 @@
     </div>
 
     <div id="admin-aliments-feuille-liste"></div>
+  </div>
+</div>
+
+<!-- ============ FEUILLE : exercices personnalisés (admin) ============ -->
+<div class="feuille" id="feuille-admin-exercices" role="dialog" aria-modal="true" aria-labelledby="feuille-admin-exercices-titre">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-entete">
+      <div class="feuille-titre" id="feuille-admin-exercices-titre">Exercices personnalisés</div>
+      <button class="feuille-fermer" type="button" onclick="fermerFeuilles()" aria-label="Fermer">&times;</button>
+    </div>
+
+    <div class="aliments-filtres">
+      <input type="text" id="exercices-filter-nom" placeholder="&#128269; Nom de l'exercice" oninput="filtrerExercicesAdmin()" autocomplete="off">
+      <input type="text" id="exercices-filter-createur" placeholder="&#128100; Email du créateur" oninput="filtrerExercicesAdmin()" autocomplete="off">
+    </div>
+
+    <div id="admin-exercices-feuille-liste"></div>
+  </div>
+</div>
+
+<!-- ============ MODALE : édition d'un exercice personnalisé (admin) ============ -->
+<div class="modal" id="modal-edit-exercice-admin" role="dialog" aria-modal="true" aria-labelledby="titre-edit-exercice-admin">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-entete">
+      <h3 id="titre-edit-exercice-admin">&#9999;&#65039; Modifier l'exercice</h3>
+      <button class="close-modal" type="button" onclick="fermerModal('modal-edit-exercice-admin')" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="edit-exo-nom">Nom</label>
+      <input type="text" id="edit-exo-nom" autocomplete="off">
+    </div>
+    <div class="input-group">
+      <label for="edit-exo-groupe">Groupe musculaire principal</label>
+      <select id="edit-exo-groupe"></select>
+    </div>
+    <div class="input-group">
+      <label for="edit-exo-materiel">Matériel</label>
+      <select id="edit-exo-materiel"></select>
+    </div>
+    <div class="input-group" style="margin-bottom:0;">
+      <label for="edit-exo-image">Lien d'une photo (facultatif)</label>
+      <input type="url" id="edit-exo-image" autocomplete="off" placeholder="https://…">
+    </div>
+    <p class="note">La modification s'applique pour tous les utilisateurs.</p>
+    <button class="btn btn-primary" type="button" onclick="sauvegarderEditionExerciceAdmin()">Enregistrer</button>
   </div>
 </div>
 
@@ -8395,6 +8448,10 @@ async function synchroniser(raison) {
     // dans sa propre table (voir synchroniserMuscu) — jamais mélangés à
     // ceux d'un autre compte, chaque ligne restant scopée à `id` ci-dessus.
     await synchroniserMuscu(id);
+    // Les exercices personnalisés des AUTRES comptes, eux, doivent être
+    // visibles ici (comme les aliments partagés) : chargement à part, en
+    // lecture seule, sans bloquer le rendu si ça échoue.
+    chargerExercicesCommunaute(id);
 
     // Les aliments en attente repartent avec la même occasion réseau.
     viderFileAliments();
@@ -9241,6 +9298,7 @@ function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.len
 const MUSCU_PROGRAMMES_KEY = 'elite_musculation_programmes_v1';
 const MUSCU_HISTORIQUE_KEY = 'elite_musculation_historique_v1';
 const MUSCU_EXOS_PERSO_KEY = 'elite_musculation_exercices_perso_v1';
+const MUSCU_EXOS_COMMUNAUTE_KEY = 'elite_musculation_exercices_communaute_v1';
 const MUSCU_SESSION_KEY = 'elite_musculation_session_active_v1';
 const MUSCU_PROGRAMME_EDITION_KEY = 'elite_musculation_programme_en_edition_v1';
 
@@ -9790,6 +9848,10 @@ const EXERCICE_MEDIA = {"e1266":{"img":["https://upload.wikimedia.org/wikipedia/
 let musculationProgrammes = [];
 let musculationHistorique = [];
 let musculationExosPerso = [];
+// Exercices personnalisés créés par d'autres comptes : visibles par tous
+// comme les aliments partagés, mais lecture seule (seul le créateur peut
+// les modifier) — alimenté par chargerExercicesCommunaute().
+let exercicesCommunaute = [];
 let musculationSessionActive = null;
 let programmeEnEdition = null;
 let pickerMode = null;
@@ -9807,7 +9869,10 @@ let seanceLibreAProposer = null;
 function idUnique(prefixe) {
   return prefixe + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
-function toutesLesExercices() { return EXERCICES_BASE.concat(musculationExosPerso); }
+function toutesLesExercices() {
+  const mesIds = new Set(musculationExosPerso.map(e => e.id));
+  return EXERCICES_BASE.concat(musculationExosPerso).concat(exercicesCommunaute.filter(e => !mesIds.has(e.id)));
+}
 function trouverExercice(id) { return toutesLesExercices().find(e => e.id === id); }
 /* Beaucoup de salles n'affichent les machines qu'en anglais sur leur
    étiquette : le nom anglais est donc affiché entre parenthèses à côté du
@@ -9916,6 +9981,7 @@ function chargerMuscu() {
   try { musculationProgrammes = JSON.parse(localStorage.getItem(MUSCU_PROGRAMMES_KEY)) || []; } catch (e) { musculationProgrammes = []; }
   try { musculationHistorique = JSON.parse(localStorage.getItem(MUSCU_HISTORIQUE_KEY)) || []; } catch (e) { musculationHistorique = []; }
   try { musculationExosPerso = JSON.parse(localStorage.getItem(MUSCU_EXOS_PERSO_KEY)) || []; } catch (e) { musculationExosPerso = []; }
+  try { exercicesCommunaute = JSON.parse(localStorage.getItem(MUSCU_EXOS_COMMUNAUTE_KEY)) || []; } catch (e) { exercicesCommunaute = []; }
   try { musculationSessionActive = JSON.parse(localStorage.getItem(MUSCU_SESSION_KEY)) || null; } catch (e) { musculationSessionActive = null; }
   try { programmeEnEdition = JSON.parse(localStorage.getItem(MUSCU_PROGRAMME_EDITION_KEY)) || null; } catch (e) { programmeEnEdition = null; }
 }
@@ -10034,6 +10100,28 @@ async function synchroniserMuscu(utilisateurId) {
     } catch (e) {}
     if (ecranActif === 'seance') renderSeance();
     if (ecranActif === 'stats') renderStatsMuscu();
+  }
+}
+
+/* Exercices personnalisés créés par d'autres comptes : comme les aliments
+   partagés, ils doivent être visibles par tout le monde dans la recherche —
+   mais contrairement à eux, pas de RPC dédiée : un simple select sans
+   filtre `utilisateur` (la policy RLS l'autorise en lecture pour tout
+   compte valide), à part de synchroniserMuscu() qui elle reste scopée au
+   compte courant pour ses propres lectures/écritures. Lecture seule : seul
+   le créateur peut modifier sa propre fiche (voir ouvrirEditionExercicePerso). */
+async function chargerExercicesCommunaute(utilisateurId) {
+  if (!supa) return;
+  try {
+    const { data, error } = await supa.from('exercices_perso_musculation').select('id,utilisateur,donnees');
+    if (error) throw error;
+    exercicesCommunaute = (data || [])
+      .filter(r => r.utilisateur !== utilisateurId && r.donnees)
+      .map(r => Object.assign({}, r.donnees, { id: r.id }));
+    try { localStorage.setItem(MUSCU_EXOS_COMMUNAUTE_KEY, JSON.stringify(exercicesCommunaute)); } catch (e) {}
+    if (document.getElementById('picker-exercices-modal')?.classList.contains('show')) rendrePickerExercices();
+  } catch (e) {
+    console.warn('[Exercices] chargement communauté indisponible :', e.message);
   }
 }
 
@@ -10972,7 +11060,14 @@ function afficherFicheExerciceBiblio(id) {
   </div>`;
 
   if (e.perso) {
-    html += `<button type="button" class="btn btn-secondaire" style="margin-bottom:14px;" onclick="ouvrirEditionExercicePerso('${e.id}')">✏️ Modifier cet exercice (nom, groupe, photo…)</button>`;
+    // Un exercice perso créé par un autre compte apparaît dans la
+    // bibliothèque de tout le monde (comme les aliments partagés), mais
+    // seul son créateur peut le modifier.
+    if (musculationExosPerso.some(x => x.id === e.id)) {
+      html += `<button type="button" class="btn btn-secondaire" style="margin-bottom:14px;" onclick="ouvrirEditionExercicePerso('${e.id}')">✏️ Modifier cet exercice (nom, groupe, photo…)</button>`;
+    } else {
+      html += `<p class="note" style="margin-bottom:14px;">Exercice personnalisé créé par un autre utilisateur — visible par tous, modifiable seulement par son créateur.</p>`;
+    }
   }
 
   if (media && media.ins && media.ins.length) {
@@ -10992,17 +11087,20 @@ function afficherFicheExerciceBiblio(id) {
   if (media && media.img && media.img.length > 1) demarrerAnimationFiche();
 }
 let exercicePersoEnEdition = null;
-function preparerSelectsExercicePerso() {
-  const selGroupe = document.getElementById('perso-groupe');
-  if (!selGroupe.dataset.pret) {
+function remplirSelectsExercice(idGroupe, idMateriel) {
+  const selGroupe = document.getElementById(idGroupe);
+  if (selGroupe && !selGroupe.dataset.pret) {
     selGroupe.dataset.pret = '1';
     selGroupe.innerHTML = ORDRE_GROUPES.map(g => `<option value="${g}">${GROUPES_MUSCULAIRES[g]}</option>`).join('');
   }
-  const selMat = document.getElementById('perso-materiel');
-  if (!selMat.dataset.pret) {
+  const selMat = document.getElementById(idMateriel);
+  if (selMat && !selMat.dataset.pret) {
     selMat.dataset.pret = '1';
     selMat.innerHTML = ORDRE_MATERIELS.map(m => `<option value="${m}">${MATERIELS[m].ic} ${MATERIELS[m].label}</option>`).join('');
   }
+}
+function preparerSelectsExercicePerso() {
+  remplirSelectsExercice('perso-groupe', 'perso-materiel');
 }
 function ouvrirCreationExercicePerso() {
   exercicePersoEnEdition = null;
@@ -12412,6 +12510,200 @@ async function supprimerAlimentPartage(aliment) {
     await consignerAction('aliment_supprime', aliment.id, aliment.nom || '', null,
       { createur: aliment.createur || null });
     await chargerAlimentsAdmin();       // la feuille ouverte se met bien à jour
+  } catch (e) {
+    alert('Suppression impossible : ' + e.message);
+  }
+}
+
+/* =====================================================================
+   ADMIN — EXERCICES PERSONNALISÉS
+   Même logique que les aliments partagés ci-dessus : une table Supabase
+   lue/écrite par tout le monde (voir la policy RLS dédiée), administrable
+   ici sans passer par du SQL. La base d'exercices d'origine (EXERCICES_BASE
+   / EXERCICE_MEDIA) n'est pas concernée : elle vit dans le code de l'appli,
+   pas dans une table.
+   ===================================================================== */
+let adminExercicesCharges = [];
+
+async function afficherFeuillExercicesAdmin() {
+  ['exercices-filter-nom', 'exercices-filter-createur']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ouvrirFeuille('feuille-admin-exercices');
+  await chargerExercicesAdmin();
+}
+
+/* Pas de RPC dédiée ici (peu de lignes attendues, contrairement aux
+   aliments) : on rapatrie tout et on filtre côté client. */
+async function chargerExercicesAdmin() {
+  const conteneur = document.getElementById('admin-exercices-feuille-liste');
+  if (!conteneur) return;
+  conteneur.innerHTML = '';
+  const attente = document.createElement('p');
+  attente.className = 'note';
+  attente.textContent = 'Chargement…';
+  conteneur.appendChild(attente);
+
+  if (!supa) { attente.textContent = 'Pas de connexion à Supabase.'; return; }
+
+  try {
+    const { data, error } = await supa.from('exercices_perso_musculation').select('id,utilisateur,donnees,maj');
+    if (error) throw error;
+    adminExercicesCharges = (data || []).map(r => ({
+      id: r.id,
+      utilisateur: r.utilisateur,
+      email: (adminComptes[r.utilisateur] && adminComptes[r.utilisateur].email) || String(r.utilisateur).slice(0, 8),
+      maj: r.maj,
+      ...r.donnees
+    }));
+    filtrerExercicesAdmin();
+  } catch (e) {
+    conteneur.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'note';
+    p.textContent = 'Erreur : ' + e.message;
+    conteneur.appendChild(p);
+  }
+}
+
+let minuteurFiltreExercices = null;
+function filtrerExercicesAdmin() {
+  clearTimeout(minuteurFiltreExercices);
+  minuteurFiltreExercices = setTimeout(() => {
+    const nom = normaliserRecherche(document.getElementById('exercices-filter-nom')?.value || '');
+    const createur = normaliserRecherche(document.getElementById('exercices-filter-createur')?.value || '');
+    const liste = adminExercicesCharges.filter(e => {
+      if (nom && !normaliserRecherche(e.nom || '').includes(nom)) return false;
+      if (createur && !normaliserRecherche(e.email || '').includes(createur)) return false;
+      return true;
+    });
+    rendreExercicesAdmin(liste);
+  }, 300);
+}
+
+/* Rendu par DOM uniquement : nom et email de créateur sont des données
+   saisies par des utilisateurs, elles ne doivent jamais traverser innerHTML. */
+function rendreExercicesAdmin(exercices) {
+  const conteneur = document.getElementById('admin-exercices-feuille-liste');
+  if (!conteneur) return;
+  conteneur.innerHTML = '';
+
+  if (!exercices || !exercices.length) {
+    const p = document.createElement('p');
+    p.className = 'note';
+    p.textContent = 'Aucun exercice ne correspond.';
+    conteneur.appendChild(p);
+    return;
+  }
+
+  const compteur = document.createElement('p');
+  compteur.className = 'note';
+  compteur.textContent = exercices.length + ' exercice(s)';
+  conteneur.appendChild(compteur);
+
+  exercices.forEach(exo => {
+    const carte = document.createElement('div');
+    carte.className = 'admin-aliment-card';
+
+    const tete = document.createElement('div');
+    tete.className = 'aliment-header';
+
+    const vignette = document.createElement('span');
+    vignette.className = 'exo-ligne-vignette';
+    vignette.setAttribute('aria-hidden', 'true');
+    vignette.innerHTML = medaillonExercice(exo);
+    vignette.style.flex = 'none';
+
+    const info = document.createElement('div');
+    info.className = 'aliment-info';
+    const nomEl = document.createElement('strong');
+    nomEl.textContent = exo.nom || 'Sans nom';
+    const meta = document.createElement('small');
+    meta.textContent = exo.email
+      + ' · ' + (GROUPES_MUSCULAIRES[exo.groupe] || exo.groupe)
+      + ' · ' + (MATERIELS[exo.materiel] ? MATERIELS[exo.materiel].label : exo.materiel);
+    info.appendChild(nomEl); info.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'aliment-actions';
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'bouton-petit';
+    btnEdit.type = 'button';
+    btnEdit.textContent = '✏️';
+    btnEdit.title = 'Modifier';
+    btnEdit.addEventListener('click', () => editerExerciceAdmin(exo));
+    const btnSup = document.createElement('button');
+    btnSup.className = 'bouton-petit danger';
+    btnSup.type = 'button';
+    btnSup.textContent = '🗑️';
+    btnSup.title = 'Supprimer';
+    btnSup.addEventListener('click', () => supprimerExerciceAdmin(exo));
+    actions.appendChild(btnEdit); actions.appendChild(btnSup);
+
+    tete.appendChild(vignette); tete.appendChild(info); tete.appendChild(actions);
+    carte.appendChild(tete);
+    conteneur.appendChild(carte);
+  });
+}
+
+function editerExerciceAdmin(exo) {
+  const modal = document.getElementById('modal-edit-exercice-admin');
+  if (!modal) return;
+  modal.dataset.exerciceId = exo.id;
+  remplirSelectsExercice('edit-exo-groupe', 'edit-exo-materiel');
+  document.getElementById('edit-exo-nom').value = exo.nom || '';
+  document.getElementById('edit-exo-groupe').value = exo.groupe || ORDRE_GROUPES[0];
+  document.getElementById('edit-exo-materiel').value = exo.materiel || ORDRE_MATERIELS[0];
+  document.getElementById('edit-exo-image').value = (exo.img && exo.img[0]) || '';
+  modal.classList.add('show');
+  majCoucheOuverte();
+}
+
+async function sauvegarderEditionExerciceAdmin() {
+  const modal = document.getElementById('modal-edit-exercice-admin');
+  if (!modal || !supa) return;
+  const id = modal.dataset.exerciceId;
+  if (!id) return;
+  const original = adminExercicesCharges.find(e => e.id === id);
+  if (!original) return;
+
+  const nom = document.getElementById('edit-exo-nom').value.trim();
+  if (!nom) { alert('Le nom ne peut pas être vide.'); return; }
+  const image = document.getElementById('edit-exo-image').value.trim();
+  const groupe = document.getElementById('edit-exo-groupe').value;
+  const materiel = document.getElementById('edit-exo-materiel').value;
+
+  // On repart des données existantes (secondaires, instructions, flag perso…)
+  // pour ne modifier que les champs du formulaire, sans rien effacer d'autre.
+  const donnees = Object.assign({}, original, { id, nom, groupe, materiel, maj: Date.now() });
+  delete donnees.email; delete donnees.utilisateur;
+  if (image) donnees.img = [image]; else delete donnees.img;
+
+  try {
+    const { error } = await supa
+      .from('exercices_perso_musculation')
+      .update({ donnees, maj: donnees.maj })
+      .eq('id', id);
+    if (error) throw error;
+
+    await consignerAction('exercice_modifie', id, nom, null, { createur: original.email || null });
+    modal.classList.remove('show');
+    majCoucheOuverte();
+    await chargerExercicesAdmin();
+  } catch (e) {
+    alert('Modification impossible : ' + e.message);
+  }
+}
+
+async function supprimerExerciceAdmin(exo) {
+  if (!supa) return;
+  if (!confirm('Supprimer « ' + (exo.nom || 'cet exercice') + ' » ?\n\nIl disparaîtra de la bibliothèque pour tous les utilisateurs (son créateur y compris), mais son historique de séances déjà enregistré restera intact.')) return;
+
+  try {
+    const { error } = await supa.from('exercices_perso_musculation').delete().eq('id', exo.id);
+    if (error) throw error;
+
+    await consignerAction('exercice_supprime', exo.id, exo.nom || '', null, { createur: exo.email || null });
+    await chargerExercicesAdmin();
   } catch (e) {
     alert('Suppression impossible : ' + e.message);
   }
