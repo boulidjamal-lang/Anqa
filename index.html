@@ -9946,7 +9946,11 @@ function medaillonExercice(exo) {
     // transparent : invisibles sur le fond clair par défaut de la vignette
     // (contrairement aux photos). Fond sombre fixe, peu importe le thème.
     const fondSombre = estIllustrationVectorielle(media.img[0]) ? ' style="background:#14171d;"' : '';
-    return `<img src="${media.img[0]}" alt="" loading="lazy"${fondSombre}>`;
+    // Pas de loading="lazy" : sur une poignée de vignettes dans une liste
+    // ou une modale (jamais des centaines), ça ne fait que retarder le
+    // début du téléchargement d'un cran (le temps que le navigateur
+    // confirme que l'image est bien visible) sans aucun bénéfice de perf.
+    return `<img src="${media.img[0]}" alt="" decoding="async"${fondSombre}>`;
   }
   return svgSilhouetteGroupe(exo.groupe);
 }
@@ -10336,9 +10340,31 @@ function majBandeauSeanceFlottant() {
     (musculationSessionActive.programmeNom || 'Séance libre') + ' · ' + nbFaites + ' série(s) cochée(s)';
 }
 
+// Photos des exercices d'un programme : préchargées dès que la liste des
+// programmes s'affiche (avant même que l'utilisateur tape "Démarrer"), pour
+// que l'aperçu du programme (apercuProgramme) les montre déjà en cache au
+// lieu de les faire apparaître une par une pendant une seconde ou deux.
+const imagesExercicesPrechargees = new Set();
+function prechargerImagesProgrammes() {
+  musculationProgrammes.forEach(p => {
+    p.exercices.forEach(pe => {
+      const exo = trouverExercice(pe.exerciceId);
+      if (!exo) return;
+      const media = mediaExercice(exo);
+      if (!media || !media.img) return;
+      media.img.forEach(url => {
+        if (!url || imagesExercicesPrechargees.has(url)) return;
+        imagesExercicesPrechargees.add(url);
+        new Image().src = url;
+      });
+    });
+  });
+}
+
 function renderListeProgrammes() {
   const c = document.getElementById('programmes-liste-container');
   if (!c) return;
+  prechargerImagesProgrammes();
   if (!musculationProgrammes.length) {
     c.innerHTML = '<div class="vide">Aucun programme pour l’instant. Crée ton premier programme, ou lance une séance libre.</div>';
     return;
