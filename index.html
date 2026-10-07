@@ -2169,9 +2169,9 @@
 
     <div class="admin-separateur">
       <button class="btn btn-primary" type="button" onclick="afficherFeuillExercicesAdmin()">
-        &#127947;&#65039; Exercices personnalisés
+        &#127947;&#65039; Bibliothèque d'exercices
       </button>
-      <p class="note">Tous les exercices personnalisés créés par les utilisateurs, visibles dans la bibliothèque de chacun. (La base d'exercices d'origine n'est pas ici : elle vit dans le code de l'appli, pas dans la base de données.)</p>
+      <p class="note">Tous les exercices — ceux de la base d'origine et ceux créés par les utilisateurs — modifiables ici : nom, groupe musculaire, matériel, photo.</p>
     </div>
 
     <div id="admin-stats-zone" class="hidden">
@@ -2625,7 +2625,7 @@
   <div class="feuille-contenu">
     <div class="feuille-poignee"></div>
     <div class="feuille-entete">
-      <div class="feuille-titre" id="feuille-admin-exercices-titre">Exercices personnalisés</div>
+      <div class="feuille-titre" id="feuille-admin-exercices-titre">Bibliothèque d'exercices</div>
       <button class="feuille-fermer" type="button" onclick="fermerFeuilles()" aria-label="Fermer">&times;</button>
     </div>
 
@@ -8452,6 +8452,7 @@ async function synchroniser(raison) {
     // visibles ici (comme les aliments partagés) : chargement à part, en
     // lecture seule, sans bloquer le rendu si ça échoue.
     chargerExercicesCommunaute(id);
+    chargerBaseOverrides();
 
     // Les aliments en attente repartent avec la même occasion réseau.
     viderFileAliments();
@@ -9299,6 +9300,7 @@ const MUSCU_PROGRAMMES_KEY = 'elite_musculation_programmes_v1';
 const MUSCU_HISTORIQUE_KEY = 'elite_musculation_historique_v1';
 const MUSCU_EXOS_PERSO_KEY = 'elite_musculation_exercices_perso_v1';
 const MUSCU_EXOS_COMMUNAUTE_KEY = 'elite_musculation_exercices_communaute_v1';
+const MUSCU_BASE_OVERRIDES_KEY = 'elite_musculation_base_overrides_v1';
 const MUSCU_SESSION_KEY = 'elite_musculation_session_active_v1';
 const MUSCU_PROGRAMME_EDITION_KEY = 'elite_musculation_programme_en_edition_v1';
 
@@ -9982,8 +9984,20 @@ function chargerMuscu() {
   try { musculationHistorique = JSON.parse(localStorage.getItem(MUSCU_HISTORIQUE_KEY)) || []; } catch (e) { musculationHistorique = []; }
   try { musculationExosPerso = JSON.parse(localStorage.getItem(MUSCU_EXOS_PERSO_KEY)) || []; } catch (e) { musculationExosPerso = []; }
   try { exercicesCommunaute = JSON.parse(localStorage.getItem(MUSCU_EXOS_COMMUNAUTE_KEY)) || []; } catch (e) { exercicesCommunaute = []; }
+  try { appliquerOverridesBase(JSON.parse(localStorage.getItem(MUSCU_BASE_OVERRIDES_KEY)) || []); } catch (e) {}
   try { musculationSessionActive = JSON.parse(localStorage.getItem(MUSCU_SESSION_KEY)) || null; } catch (e) { musculationSessionActive = null; }
   try { programmeEnEdition = JSON.parse(localStorage.getItem(MUSCU_PROGRAMME_EDITION_KEY)) || null; } catch (e) { programmeEnEdition = null; }
+}
+/* Corrections admin sur la base d'exercices d'origine (nom, groupe,
+   matériel, photo) : appliquées en place sur EXERCICES_BASE, pour que tout
+   le code existant (medaillonExercice, fiches, picker…) les voie sans rien
+   changer d'autre — ces fonctions lisent déjà l'exercice lui-même avant
+   EXERCICE_MEDIA. */
+function appliquerOverridesBase(lignes) {
+  (lignes || []).forEach(r => {
+    const exo = EXERCICES_BASE.find(e => e.id === r.id);
+    if (exo && r.donnees) Object.assign(exo, r.donnees);
+  });
 }
 function sauvegarderProgrammes() {
   try { localStorage.setItem(MUSCU_PROGRAMMES_KEY, JSON.stringify(musculationProgrammes)); planifierSync(); }
@@ -10122,6 +10136,23 @@ async function chargerExercicesCommunaute(utilisateurId) {
     if (document.getElementById('picker-exercices-modal')?.classList.contains('show')) rendrePickerExercices();
   } catch (e) {
     console.warn('[Exercices] chargement communauté indisponible :', e.message);
+  }
+}
+
+/* Corrections admin sur des exercices de la BASE d'origine (voir
+   appliquerOverridesBase) : une table séparée, à part, puisque
+   EXERCICES_BASE n'est pas en ligne dans Supabase. */
+async function chargerBaseOverrides() {
+  if (!supa) return;
+  try {
+    const { data, error } = await supa.from('exercices_base_overrides').select('id,donnees,maj');
+    if (error) throw error;
+    const lignes = data || [];
+    appliquerOverridesBase(lignes);
+    try { localStorage.setItem(MUSCU_BASE_OVERRIDES_KEY, JSON.stringify(lignes)); } catch (e) {}
+    if (document.getElementById('picker-exercices-modal')?.classList.contains('show')) rendrePickerExercices();
+  } catch (e) {
+    console.warn('[Exercices] chargement des corrections de base indisponible :', e.message);
   }
 }
 
@@ -12516,12 +12547,14 @@ async function supprimerAlimentPartage(aliment) {
 }
 
 /* =====================================================================
-   ADMIN — EXERCICES PERSONNALISÉS
-   Même logique que les aliments partagés ci-dessus : une table Supabase
-   lue/écrite par tout le monde (voir la policy RLS dédiée), administrable
-   ici sans passer par du SQL. La base d'exercices d'origine (EXERCICES_BASE
-   / EXERCICE_MEDIA) n'est pas concernée : elle vit dans le code de l'appli,
-   pas dans une table.
+   ADMIN — BIBLIOTHÈQUE D'EXERCICES (base + personnalisés)
+   Les exercices personnalisés vivent dans une table Supabase, lue/écrite
+   par tout le monde (voir la policy RLS dédiée) — administrables ici
+   directement. La base d'exercices d'origine (EXERCICES_BASE /
+   EXERCICE_MEDIA) vit dans le code de l'appli : on ne peut pas la
+   modifier en place à chaque déploiement, donc une correction admin est
+   stockée à part, dans exercices_base_overrides (id -> champs modifiés),
+   et appliquée par-dessus au chargement — voir appliquerOverridesBase().
    ===================================================================== */
 let adminExercicesCharges = [];
 
@@ -12532,8 +12565,9 @@ async function afficherFeuillExercicesAdmin() {
   await chargerExercicesAdmin();
 }
 
-/* Pas de RPC dédiée ici (peu de lignes attendues, contrairement aux
-   aliments) : on rapatrie tout et on filtre côté client. */
+/* Pas de RPC dédiée ici : on rapatrie tout (les exercices perso depuis
+   Supabase, la base depuis EXERCICES_BASE déjà en mémoire) et on filtre
+   côté client. */
 async function chargerExercicesAdmin() {
   const conteneur = document.getElementById('admin-exercices-feuille-liste');
   if (!conteneur) return;
@@ -12548,13 +12582,20 @@ async function chargerExercicesAdmin() {
   try {
     const { data, error } = await supa.from('exercices_perso_musculation').select('id,utilisateur,donnees,maj');
     if (error) throw error;
-    adminExercicesCharges = (data || []).map(r => ({
+    const persoEtCommunaute = (data || []).map(r => ({
       id: r.id,
       utilisateur: r.utilisateur,
       email: (adminComptes[r.utilisateur] && adminComptes[r.utilisateur].email) || String(r.utilisateur).slice(0, 8),
       maj: r.maj,
+      estBase: false,
       ...r.donnees
     }));
+    const base = EXERCICES_BASE.map(e => ({
+      id: e.id, nom: e.nom, nomEn: e.nomEn, groupe: e.groupe,
+      secondaires: e.secondaires, materiel: e.materiel, img: e.img, ins: e.ins,
+      email: 'Bibliothèque de base', estBase: true
+    }));
+    adminExercicesCharges = persoEtCommunaute.concat(base);
     filtrerExercicesAdmin();
   } catch (e) {
     conteneur.innerHTML = '';
@@ -12571,18 +12612,23 @@ function filtrerExercicesAdmin() {
   minuteurFiltreExercices = setTimeout(() => {
     const nom = normaliserRecherche(document.getElementById('exercices-filter-nom')?.value || '');
     const createur = normaliserRecherche(document.getElementById('exercices-filter-createur')?.value || '');
-    const liste = adminExercicesCharges.filter(e => {
+    const correspond = adminExercicesCharges.filter(e => {
       if (nom && !normaliserRecherche(e.nom || '').includes(nom)) return false;
       if (createur && !normaliserRecherche(e.email || '').includes(createur)) return false;
       return true;
     });
-    rendreExercicesAdmin(liste);
+    // Sans recherche, afficher 673 cartes d'un coup n'aide personne : on
+    // montre les exercices perso/communauté en premier (les plus probables
+    // à administrer), puis on plafonne l'affichage de la base.
+    const LIMITE_SANS_FILTRE = 150;
+    const limiter = !nom && !createur && correspond.length > LIMITE_SANS_FILTRE;
+    rendreExercicesAdmin(limiter ? correspond.slice(0, LIMITE_SANS_FILTRE) : correspond, limiter ? correspond.length : null);
   }, 300);
 }
 
 /* Rendu par DOM uniquement : nom et email de créateur sont des données
    saisies par des utilisateurs, elles ne doivent jamais traverser innerHTML. */
-function rendreExercicesAdmin(exercices) {
+function rendreExercicesAdmin(exercices, totalReel) {
   const conteneur = document.getElementById('admin-exercices-feuille-liste');
   if (!conteneur) return;
   conteneur.innerHTML = '';
@@ -12597,7 +12643,8 @@ function rendreExercicesAdmin(exercices) {
 
   const compteur = document.createElement('p');
   compteur.className = 'note';
-  compteur.textContent = exercices.length + ' exercice(s)';
+  compteur.textContent = (totalReel || exercices.length) + ' exercice(s)'
+    + (totalReel ? ' — affine la recherche pour en voir davantage' : '');
   conteneur.appendChild(compteur);
 
   exercices.forEach(exo => {
@@ -12631,13 +12678,19 @@ function rendreExercicesAdmin(exercices) {
     btnEdit.textContent = '✏️';
     btnEdit.title = 'Modifier';
     btnEdit.addEventListener('click', () => editerExerciceAdmin(exo));
-    const btnSup = document.createElement('button');
-    btnSup.className = 'bouton-petit danger';
-    btnSup.type = 'button';
-    btnSup.textContent = '🗑️';
-    btnSup.title = 'Supprimer';
-    btnSup.addEventListener('click', () => supprimerExerciceAdmin(exo));
-    actions.appendChild(btnEdit); actions.appendChild(btnSup);
+    actions.appendChild(btnEdit);
+    // Un exercice de la base d'origine ne peut pas être supprimé (il vit
+    // dans le code, pas dans une ligne qu'on pourrait effacer) : seule la
+    // modification est proposée pour lui.
+    if (!exo.estBase) {
+      const btnSup = document.createElement('button');
+      btnSup.className = 'bouton-petit danger';
+      btnSup.type = 'button';
+      btnSup.textContent = '🗑️';
+      btnSup.title = 'Supprimer';
+      btnSup.addEventListener('click', () => supprimerExerciceAdmin(exo));
+      actions.appendChild(btnSup);
+    }
 
     tete.appendChild(vignette); tete.appendChild(info); tete.appendChild(actions);
     carte.appendChild(tete);
@@ -12653,7 +12706,10 @@ function editerExerciceAdmin(exo) {
   document.getElementById('edit-exo-nom').value = exo.nom || '';
   document.getElementById('edit-exo-groupe').value = exo.groupe || ORDRE_GROUPES[0];
   document.getElementById('edit-exo-materiel').value = exo.materiel || ORDRE_MATERIELS[0];
-  document.getElementById('edit-exo-image').value = (exo.img && exo.img[0]) || '';
+  // mediaExercice() plutôt que exo.img : pour un exercice de la base, la
+  // photo vient normalement de EXERCICE_MEDIA, pas de l'objet lui-même.
+  const mediaActuel = mediaExercice(exo);
+  document.getElementById('edit-exo-image').value = (mediaActuel && mediaActuel.img && mediaActuel.img[0]) || '';
   modal.classList.add('show');
   majCoucheOuverte();
 }
@@ -12672,30 +12728,44 @@ async function sauvegarderEditionExerciceAdmin() {
   const groupe = document.getElementById('edit-exo-groupe').value;
   const materiel = document.getElementById('edit-exo-materiel').value;
 
-  // On repart des données existantes (secondaires, instructions, flag perso…)
-  // pour ne modifier que les champs du formulaire, sans rien effacer d'autre.
-  const donnees = Object.assign({}, original, { id, nom, groupe, materiel, maj: Date.now() });
-  delete donnees.email; delete donnees.utilisateur;
-  if (image) donnees.img = [image]; else delete donnees.img;
-
   try {
-    const { error } = await supa
-      .from('exercices_perso_musculation')
-      .update({ donnees, maj: donnees.maj })
-      .eq('id', id);
-    if (error) throw error;
-
-    await consignerAction('exercice_modifie', id, nom, null, { createur: original.email || null });
+    if (original.estBase) {
+      // Un exercice de la base d'origine ne se modifie pas en place (il
+      // vit dans le code) : la correction est stockée à part et appliquée
+      // par-dessus à chaque chargement — voir appliquerOverridesBase().
+      const donnees = { nom, groupe, materiel };
+      if (image) donnees.img = [image];
+      const { error } = await supa
+        .from('exercices_base_overrides')
+        .upsert({ id, donnees, maj: Date.now(), modifie_par: sessionUtilisateur ? sessionUtilisateur.email : 'inconnu' }, { onConflict: 'id' });
+      if (error) throw error;
+      appliquerOverridesBase([{ id, donnees }]);
+      await consignerAction('exercice_base_modifie', id, nom, null, null);
+    } else {
+      // On repart des données existantes (secondaires, instructions, flag
+      // perso…) pour ne modifier que les champs du formulaire, sans rien
+      // effacer d'autre.
+      const donnees = Object.assign({}, original, { id, nom, groupe, materiel, maj: Date.now() });
+      delete donnees.email; delete donnees.utilisateur; delete donnees.estBase;
+      if (image) donnees.img = [image]; else delete donnees.img;
+      const { error } = await supa
+        .from('exercices_perso_musculation')
+        .update({ donnees, maj: donnees.maj })
+        .eq('id', id);
+      if (error) throw error;
+      await consignerAction('exercice_modifie', id, nom, null, { createur: original.email || null });
+    }
     modal.classList.remove('show');
     majCoucheOuverte();
     await chargerExercicesAdmin();
+    rendrePickerExercices();
   } catch (e) {
     alert('Modification impossible : ' + e.message);
   }
 }
 
 async function supprimerExerciceAdmin(exo) {
-  if (!supa) return;
+  if (!supa || exo.estBase) return;
   if (!confirm('Supprimer « ' + (exo.nom || 'cet exercice') + ' » ?\n\nIl disparaîtra de la bibliothèque pour tous les utilisateurs (son créateur y compris), mais son historique de séances déjà enregistré restera intact.')) return;
 
   try {
