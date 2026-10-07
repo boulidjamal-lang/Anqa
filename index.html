@@ -1026,6 +1026,18 @@
     }
     .aliments-filtres input:focus, .aliments-filtres select:focus { border-color: var(--primary); }
 
+    /* --- Réglage des couleurs de l'application (admin) --- */
+    .couleur-ligne {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 9px 2px; border-bottom: 1px solid var(--verre-brd);
+    }
+    .couleur-ligne:last-of-type { border-bottom: none; }
+    .couleur-ligne label { font-size: 0.86rem; }
+    .couleur-ligne input[type="color"] {
+      width: 48px; height: 36px; padding: 0; border: 1px solid var(--verre-brd);
+      border-radius: 10px; background: none; cursor: pointer; flex: none;
+    }
+
     .admin-aliment-card {
       background: var(--verre-creux); border: 0;
       border-radius: 16px; padding: 13px; margin-bottom: 10px;
@@ -1716,6 +1728,26 @@
       if (mtc) mtc.setAttribute('content', t === 'dark' ? '#06070a' : '#eaeef5');
     } catch (e) {}
 
+    // Couleurs personnalisées par l'admin (voir appliquerCouleursApp plus
+    // bas, dans le script principal) : rejouées ici en premier, depuis le
+    // cache local, pour éviter un flash des couleurs par défaut avant que
+    // ce script-ci n'ait eu le temps de les recharger depuis Supabase.
+    try {
+      var cc = JSON.parse(localStorage.getItem('elite_couleurs_app_v1'));
+      if (cc && (cc.clair || cc.sombre)) {
+        var style = document.createElement('style');
+        style.id = 'couleurs-perso';
+        var regle = function (theme, v) {
+          if (!v) return '';
+          return ':root[data-theme="' + theme + '"]{--bg:' + v.bg + ';--text:' + v.text +
+            ';--primary:' + v.primary + ';--accent:' + v.accent + ';--ai-color:' + v.accent +
+            ';--danger:' + v.danger + ';}';
+        };
+        style.textContent = regle('light', cc.clair) + regle('dark', cc.sombre);
+        document.head.appendChild(style);
+      }
+    } catch (e) {}
+
     var splash = document.getElementById('splash-screen');
     if (!splash) return;
     function hideSplash() {
@@ -2177,6 +2209,13 @@
         &#127947;&#65039; Bibliothèque d'exercices
       </button>
       <p class="note">Tous les exercices — ceux de la base d'origine et ceux créés par les utilisateurs — modifiables ici : nom, groupe musculaire, matériel, photo.</p>
+    </div>
+
+    <div class="admin-separateur">
+      <button class="btn btn-primary" type="button" onclick="afficherFeuilleCouleursAdmin()">
+        &#127912; Couleurs de l'application
+      </button>
+      <p class="note">Fond, texte, couleur principale, couleur secondaire et couleur d'alerte — pour les thèmes clair et sombre. S'applique pour tous les utilisateurs.</p>
     </div>
 
     <div id="admin-stats-zone" class="hidden">
@@ -2672,6 +2711,36 @@
     </div>
     <p class="note">La modification s'applique pour tous les utilisateurs.</p>
     <button class="btn btn-primary" type="button" onclick="sauvegarderEditionExerciceAdmin()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- ============ FEUILLE : couleurs de l'application (admin) ============ -->
+<div class="feuille" id="feuille-admin-couleurs" role="dialog" aria-modal="true" aria-labelledby="feuille-admin-couleurs-titre">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-entete">
+      <div class="feuille-titre" id="feuille-admin-couleurs-titre">🎨 Couleurs de l'application</div>
+      <button class="feuille-fermer" type="button" onclick="annulerCouleursAdmin()" aria-label="Fermer">&times;</button>
+    </div>
+    <p class="note" style="margin:0 0 14px;">Les aperçus s'appliquent tout de suite dans l'appli pendant que tu règles les couleurs — rien n'est partagé avec les autres comptes tant que tu n'as pas appuyé sur « Enregistrer ».</p>
+
+    <div class="titre-section">☀️ Thème clair</div>
+    <div class="couleur-ligne"><label for="coul-clair-bg">Fond</label><input type="color" id="coul-clair-bg" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-clair-text">Texte</label><input type="color" id="coul-clair-text" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-clair-primary">Couleur principale</label><input type="color" id="coul-clair-primary" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-clair-accent">Couleur secondaire</label><input type="color" id="coul-clair-accent" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-clair-danger">Alerte</label><input type="color" id="coul-clair-danger" oninput="previsualiserCouleursAdmin()"></div>
+
+    <div class="titre-section">🌙 Thème sombre</div>
+    <div class="couleur-ligne"><label for="coul-sombre-bg">Fond</label><input type="color" id="coul-sombre-bg" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-sombre-text">Texte</label><input type="color" id="coul-sombre-text" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-sombre-primary">Couleur principale</label><input type="color" id="coul-sombre-primary" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-sombre-accent">Couleur secondaire</label><input type="color" id="coul-sombre-accent" oninput="previsualiserCouleursAdmin()"></div>
+    <div class="couleur-ligne"><label for="coul-sombre-danger">Alerte</label><input type="color" id="coul-sombre-danger" oninput="previsualiserCouleursAdmin()"></div>
+
+    <button class="btn btn-secondaire" style="margin-top:16px;" type="button" onclick="reinitialiserCouleursAdmin()">↺ Réinitialiser aux couleurs par défaut</button>
+    <button class="btn btn-primary" style="margin-top:10px;" type="button" onclick="enregistrerCouleursAdmin()">💾 Enregistrer pour tout le monde</button>
+    <button class="btn btn-secondaire" style="margin-top:10px;" type="button" onclick="annulerCouleursAdmin()">Annuler</button>
   </div>
 </div>
 
@@ -6550,6 +6619,72 @@ function appliquerTheme(t) {
 // réglages (choisirTheme, via le segment Clair/Sombre) appelle encore
 // appliquerTheme().
 function choisirTheme(t) { appliquerTheme(t); }
+
+/* =====================================================================
+   COULEURS DE L'APPLICATION — réglage admin (voir afficherFeuilleCouleursAdmin).
+   Fond/texte/couleur principale/couleur secondaire/alerte, pour les deux
+   thèmes : au choix de l'admin, partagé avec tous les comptes (table
+   theme_couleurs), comme les aliments partagés ou les exercices perso.
+   Le reste de la palette (verre, ombres, macros…) n'est pas touché.
+   ===================================================================== */
+const COULEURS_APP_KEY = 'elite_couleurs_app_v1';
+const COULEURS_APP_DEFAUT = {
+  clair:  { bg: '#eaeef5', text: '#0e1420', primary: '#00703a', accent: '#1552c4', danger: '#c62828' },
+  sombre: { bg: '#06070a', text: '#f4f7fb', primary: '#14b566', accent: '#6aa2ff', danger: '#ff6b6b' }
+};
+let couleursAppActuelles = null; // null = couleurs par défaut (aucune personnalisation enregistrée)
+
+// Texte blanc ou presque noir par-dessus un aplat de cette couleur, selon sa
+// luminosité perçue — pour que --primary-txt reste lisible quelle que soit
+// la couleur principale choisie.
+function texteContrastePour(hex) {
+  const c = (hex || '').replace('#', '');
+  if (c.length !== 6) return '#ffffff';
+  const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.4 ? '#0e1420' : '#ffffff';
+}
+function hexVersRgb(hex) {
+  const c = (hex || '').replace('#', '');
+  if (c.length !== 6) return '0,0,0';
+  return [0, 2, 4].map(i => parseInt(c.slice(i, i + 2), 16)).join(',');
+}
+function construireCssCouleurs(donnees) {
+  const regle = (theme, v) => {
+    if (!v) return '';
+    return `:root[data-theme="${theme}"]{--bg:${v.bg};--text:${v.text};` +
+      `--primary:${v.primary};--primary-txt:${texteContrastePour(v.primary)};` +
+      `--primary-glow:rgba(${hexVersRgb(v.primary)},.3);` +
+      `--accent:${v.accent};--ai-color:${v.accent};--danger:${v.danger};}`;
+  };
+  return regle('light', donnees && donnees.clair) + regle('dark', donnees && donnees.sombre);
+}
+// donnees = null remet les couleurs par défaut du code (le tag reste vide).
+function appliquerCouleursApp(donnees) {
+  let style = document.getElementById('couleurs-perso');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'couleurs-perso';
+    document.head.appendChild(style);
+  }
+  style.textContent = donnees ? construireCssCouleurs(donnees) : '';
+}
+// Chargée pour tout le monde (pas seulement l'admin) : ces couleurs sont la
+// palette de l'appli, pas un réglage personnel. Échoue en silence (garde
+// les couleurs par défaut, ou la dernière valeur mise en cache) si hors
+// ligne ou si la table n'existe pas encore.
+async function chargerCouleursApp() {
+  if (!supa) return;
+  try {
+    const { data, error } = await supa.from('theme_couleurs').select('donnees').eq('id', 'app').maybeSingle();
+    if (error) throw error;
+    couleursAppActuelles = data ? data.donnees : null;
+    appliquerCouleursApp(couleursAppActuelles);
+    try { localStorage.setItem(COULEURS_APP_KEY, JSON.stringify(couleursAppActuelles || {})); } catch (e) {}
+  } catch (e) {
+    console.warn('[Couleurs] chargement indisponible :', e.message);
+  }
+}
 function choisirDensite(d) {
   document.documentElement.setAttribute('data-densite', d);
   try { localStorage.setItem('elite_densite', d); } catch (e) {}
@@ -11918,7 +12053,7 @@ window.addEventListener('load', () => {
   // le tout premier compartiment "moi", partagé, à CHAQUE ouverture de
   // l'appli. initAuth() se charge lui-même de déclencher la bonne synchro
   // (avec le vrai identifiant) une fois la session connue.
-  if (initSupabase()) { initAuth(); compterAliments(); }
+  if (initSupabase()) { initAuth(); compterAliments(); chargerCouleursApp(); }
   else {
     compterAliments();
     // Sans client Supabase (pas de réseau au tout premier lancement, le plus
@@ -12820,6 +12955,65 @@ async function supprimerExerciceAdmin(exo) {
   } catch (e) {
     alert('Suppression impossible : ' + e.message);
   }
+}
+
+/* =====================================================================
+   ADMIN — COULEURS DE L'APPLICATION (voir appliquerCouleursApp plus haut)
+   ===================================================================== */
+function remplirFormulaireCouleurs(donnees) {
+  const v = donnees || COULEURS_APP_DEFAUT;
+  ['clair', 'sombre'].forEach(theme => {
+    const t = v[theme] || COULEURS_APP_DEFAUT[theme];
+    ['bg', 'text', 'primary', 'accent', 'danger'].forEach(champ => {
+      const el = document.getElementById(`coul-${theme}-${champ}`);
+      if (el) el.value = t[champ];
+    });
+  });
+}
+function lireFormulaireCouleurs() {
+  const lire = (theme, champ) => document.getElementById(`coul-${theme}-${champ}`).value;
+  const objetTheme = theme => ({
+    bg: lire(theme, 'bg'), text: lire(theme, 'text'), primary: lire(theme, 'primary'),
+    accent: lire(theme, 'accent'), danger: lire(theme, 'danger')
+  });
+  return { clair: objetTheme('clair'), sombre: objetTheme('sombre') };
+}
+function afficherFeuilleCouleursAdmin() {
+  remplirFormulaireCouleurs(couleursAppActuelles);
+  ouvrirFeuille('feuille-admin-couleurs');
+}
+// Aperçu en direct pendant que l'admin règle les couleurs : appliqué tout
+// de suite dans l'appli (voir appliquerCouleursApp), rien n'est encore
+// envoyé à Supabase — annulerCouleursAdmin() revient en arrière si l'admin
+// ferme sans enregistrer.
+function previsualiserCouleursAdmin() {
+  appliquerCouleursApp(lireFormulaireCouleurs());
+}
+function reinitialiserCouleursAdmin() {
+  remplirFormulaireCouleurs(null);
+  previsualiserCouleursAdmin();
+}
+async function enregistrerCouleursAdmin() {
+  if (!supa) return;
+  const donnees = lireFormulaireCouleurs();
+  try {
+    const { error } = await supa.from('theme_couleurs')
+      .upsert({ id: 'app', donnees, maj: Date.now(), modifie_par: sessionUtilisateur ? sessionUtilisateur.email : 'inconnu' }, { onConflict: 'id' });
+    if (error) throw error;
+    couleursAppActuelles = donnees;
+    try { localStorage.setItem(COULEURS_APP_KEY, JSON.stringify(donnees)); } catch (e) {}
+    appliquerCouleursApp(donnees);
+    await consignerAction('couleurs_app_modifiees', 'app', 'Couleurs de l\'application', null, null);
+    fermerFeuilles();
+  } catch (e) {
+    alert('Enregistrement impossible : ' + e.message);
+  }
+}
+// Revient aux dernières couleurs enregistrées (ou aux couleurs par défaut
+// si rien n'a jamais été enregistré), pour effacer un aperçu non sauvegardé.
+function annulerCouleursAdmin() {
+  appliquerCouleursApp(couleursAppActuelles);
+  fermerFeuilles();
 }
 
 /* --- Fermeture de toutes les feuilles ------------------------------- */
