@@ -10262,6 +10262,10 @@ async function synchroniserMuscu(utilisateurId) {
     } catch (e) {}
     if (ecranActif === 'seance') renderSeance();
     if (ecranActif === 'stats') renderStatsMuscu();
+    // Même hors de l'onglet Séance : un programme tout juste synchronisé
+    // depuis un autre appareil doit, lui aussi, avoir ses photos déjà en
+    // cache avant que l'utilisateur ne l'ouvre.
+    prechargerImagesProgrammes();
   }
 }
 
@@ -12022,6 +12026,12 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('load', () => {
   loadData();
   chargerMuscu();
+  // Lancé ici, au tout premier chargement de l'appli — pas seulement en
+  // arrivant sur l'onglet Séance (voir renderListeProgrammes) — pour que
+  // les photos des exercices des programmes soient déjà en cache le temps
+  // que l'utilisateur ouvre un aperçu de programme, quel que soit l'onglet
+  // sur lequel l'appli démarre.
+  prechargerImagesProgrammes();
   verifierSupportVerre();
   appliquerTheme(themeActuel());
   let densite = 'confort';
