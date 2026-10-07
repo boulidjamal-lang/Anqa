@@ -254,6 +254,7 @@
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
+      letter-spacing: -0.01em;
       /* Le FAB (60px + 18px de décalage bas = 78px de sa base à son sommet)
          n'a que 18px de marge avec 96px : sur un vrai téléphone (métriques
          de police différentes du rendu de test, texte qui passe sur une
@@ -265,6 +266,9 @@
       overflow-x: hidden;
       transition: background-color 0.4s ease, color 0.4s ease;
     }
+    /* Supprime le flash gris au tap sur Android (bouton gardent leur propre
+       retour visuel, ex. .btn:active, pas besoin du surlignage natif). */
+    button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 
     /* Couche d'ambiance fixe : elle ne bouge pas au defilement, si bien que le
        verre change de teinte quand les cartes passent devant. */
@@ -356,7 +360,7 @@
       /* Sans animation, on fige l'aigle avec son contour au maximum : une
          silhouette figee vaut mieux qu'un ecran vide. */
       .spl-aigle { opacity: 1; filter:drop-shadow(0 0 16px rgba(34,197,94,.5)); }
-      * { transition-duration: 0.01ms !important; }
+      * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
     }
 
     /* =====================================================================
@@ -966,6 +970,7 @@
       padding: 12px 14px; min-height: 48px; margin-bottom: 8px;
       background: var(--verre-creux); border: 0;
       border-radius: 13px; color: inherit; font-family: inherit; cursor: pointer;
+      transition: background 0.18s ease;
     }
     .compte-option:hover { background: var(--verre-fort); }
     .compte-option strong { display: block; font-size: 0.86rem; word-break: break-word; }
