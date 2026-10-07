@@ -3201,7 +3201,7 @@
       <label for="perso-image">Lien d'une photo (facultatif)</label>
       <input type="url" id="perso-image" autocomplete="off" placeholder="https://…">
     </div>
-    <button class="btn btn-primary" style="margin-top:16px;" onclick="validerExercicePerso()">Ajouter à la base</button>
+    <button class="btn btn-primary" id="perso-valider-btn" style="margin-top:16px;" onclick="validerExercicePerso()">Ajouter à la base</button>
   </div>
 </div>
 
@@ -10971,6 +10971,10 @@ function afficherFicheExerciceBiblio(id) {
     <div><small>Pratiqué</small><div class="stats-valeur">${pratique.length} fois</div></div>
   </div>`;
 
+  if (e.perso) {
+    html += `<button type="button" class="btn btn-secondaire" style="margin-bottom:14px;" onclick="ouvrirEditionExercicePerso('${e.id}')">✏️ Modifier cet exercice (nom, groupe, photo…)</button>`;
+  }
+
   if (media && media.ins && media.ins.length) {
     html += `<p class="note" style="margin:0 0 6px; font-weight:700; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.8px;">Comment faire l'exercice</p>
     <ol class="fiche-exo-instructions">${media.ins.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>`;
@@ -10987,9 +10991,8 @@ function afficherFicheExerciceBiblio(id) {
   ouvrirModal('fiche-exercice-modal');
   if (media && media.img && media.img.length > 1) demarrerAnimationFiche();
 }
-function ouvrirCreationExercicePerso() {
-  document.getElementById('perso-nom').value = '';
-  document.getElementById('perso-image').value = '';
+let exercicePersoEnEdition = null;
+function preparerSelectsExercicePerso() {
   const selGroupe = document.getElementById('perso-groupe');
   if (!selGroupe.dataset.pret) {
     selGroupe.dataset.pret = '1';
@@ -11000,20 +11003,59 @@ function ouvrirCreationExercicePerso() {
     selMat.dataset.pret = '1';
     selMat.innerHTML = ORDRE_MATERIELS.map(m => `<option value="${m}">${MATERIELS[m].ic} ${MATERIELS[m].label}</option>`).join('');
   }
+}
+function ouvrirCreationExercicePerso() {
+  exercicePersoEnEdition = null;
+  document.getElementById('titre-exercice-perso').textContent = '➕ Exercice personnalisé';
+  document.getElementById('perso-valider-btn').textContent = 'Ajouter à la base';
+  document.getElementById('perso-nom').value = '';
+  document.getElementById('perso-image').value = '';
+  preparerSelectsExercicePerso();
+  document.getElementById('perso-groupe').value = ORDRE_GROUPES[0];
+  document.getElementById('perso-materiel').value = ORDRE_MATERIELS[0];
+  ouvrirModal('exercice-perso-modal');
+}
+/* Édition d'un exercice personnalisé déjà créé (nom, groupe, matériel,
+   photo) : ouverte depuis sa fiche bibliothèque. Modifie l'entrée en place
+   — même id — pour ne pas casser son historique de séances. */
+function ouvrirEditionExercicePerso(id) {
+  const e = musculationExosPerso.find(x => x.id === id);
+  if (!e) return;
+  exercicePersoEnEdition = id;
+  document.getElementById('titre-exercice-perso').textContent = '✏️ Modifier l\'exercice';
+  document.getElementById('perso-valider-btn').textContent = 'Enregistrer';
+  preparerSelectsExercicePerso();
+  document.getElementById('perso-nom').value = e.nom;
+  document.getElementById('perso-groupe').value = e.groupe;
+  document.getElementById('perso-materiel').value = e.materiel;
+  document.getElementById('perso-image').value = (e.img && e.img[0]) || '';
+  fermerModal('fiche-exercice-modal');
   ouvrirModal('exercice-perso-modal');
 }
 function validerExercicePerso() {
   const nom = document.getElementById('perso-nom').value.trim();
   if (!nom) { alert('Donne un nom à cet exercice.'); return; }
   const image = document.getElementById('perso-image').value.trim();
-  musculationExosPerso.push({
-    id: idUnique('perso'), nom,
-    groupe: document.getElementById('perso-groupe').value,
-    secondaires: [],
-    materiel: document.getElementById('perso-materiel').value,
-    perso: true, maj: Date.now(),
-    ...(image ? { img: [image] } : {})
-  });
+  const groupe = document.getElementById('perso-groupe').value;
+  const materiel = document.getElementById('perso-materiel').value;
+  if (exercicePersoEnEdition) {
+    const e = musculationExosPerso.find(x => x.id === exercicePersoEnEdition);
+    if (e) {
+      e.nom = nom;
+      e.groupe = groupe;
+      e.materiel = materiel;
+      e.maj = Date.now();
+      if (image) e.img = [image]; else delete e.img;
+    }
+  } else {
+    musculationExosPerso.push({
+      id: idUnique('perso'), nom,
+      groupe, secondaires: [], materiel,
+      perso: true, maj: Date.now(),
+      ...(image ? { img: [image] } : {})
+    });
+  }
+  exercicePersoEnEdition = null;
   sauvegarderExosPerso();
   fermerModal('exercice-perso-modal');
   rendrePickerExercices();
