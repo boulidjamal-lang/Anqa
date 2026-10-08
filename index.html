@@ -4175,7 +4175,11 @@ function majDetailDepense(day, t) {
     const r = document.createElement('div');
     r.style.cssText = 'display:flex;justify-content:space-between;gap:12px;padding:6px 0;'
       + (i >= 4 ? 'border-top:1px solid var(--verre-brd);font-weight:700;color:var(--text);' : '');
-    const a = document.createElement('span'); a.textContent = g;
+    const a = document.createElement('span');
+    // La ligne "Ramené au métabolisme de base" embarque une icône SVG dans
+    // son libellé (toutes les autres sont du texte brut) : textContent
+    // l'affichait tel quel, markup compris, au lieu de l'afficher comme icône.
+    if (g.indexOf('<svg') !== -1) a.innerHTML = g; else a.textContent = g;
     const b = document.createElement('span'); b.textContent = d;
     r.appendChild(a); r.appendChild(b); el.appendChild(r);
   });
