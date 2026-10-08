@@ -2594,7 +2594,7 @@
     <div class="input-group" id="groupe-recherche-aliment" style="position: relative; z-index: 30;">
       <label for="man-name">Rechercher un aliment</label>
       <input type="text" id="man-name" placeholder="ex : poulet, riz, œuf, banane…" autocomplete="off"
-             oninput="verifierOFFAuto()" onfocus="verifierOFFAuto()" onblur="masquerSuggestionsDiffere()">
+             oninput="verifierOFFAuto()" onfocus="verifierOFFAuto()">
       <div id="zone-code" class="hidden"></div>
     </div>
 
@@ -4551,7 +4551,6 @@ function ouvrirBarcode(mealId) {
 // --- RECHERCHE : D'ABORD CE QUE J'AI DÉJÀ MANGÉ, ENSUITE LA BASE CIQUAL ---
 let offTimer = null;
 function verifierOFFAuto() {
-  clearTimeout(timerCacherSuggestions);
   const q = document.getElementById('man-name').value.trim();
   clearTimeout(offTimer);
   /* Champ vide : on montre directement les derniers aliments. C'est le cas le
@@ -4697,17 +4696,6 @@ function selectionnerProduitOFF(prod) {
 function cacherSuggestionsOFF() {
   const container = document.getElementById('off-suggestions-list');
   if (container) container.style.display = 'none';
-}
-
-/* La liste flotte par-dessus les champs Quantité/Calories en dessous (elle
-   ne les repousse pas) : sans fermeture rapide en quittant le champ, un tap
-   destiné à "Quantité" atterrissait en réalité sur une suggestion cachée
-   dessous. Le petit délai laisse quand même le temps au clic sur une
-   suggestion de se déclencher avant que la liste ne disparaisse sous lui. */
-let timerCacherSuggestions = null;
-function masquerSuggestionsDiffere() {
-  clearTimeout(timerCacherSuggestions);
-  timerCacherSuggestions = setTimeout(cacherSuggestionsOFF, 180);
 }
 
 function fillFromOFF(product) {
