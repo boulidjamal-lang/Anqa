@@ -2532,6 +2532,36 @@
   </div>
 </div>
 
+<!-- ============ FEUILLE : choix recette ou aliment, avant feuille-repas ============ -->
+<div class="feuille" id="feuille-ajout-choix" role="dialog" aria-modal="true" aria-labelledby="feuille-ajout-choix-titre">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-titre" id="feuille-ajout-choix-titre">Ajouter au repas</div>
+    <button class="feuille-action" onclick="choisirAjoutRecette()">
+      <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8" /><path d="M12 19V9" /><path d="m8 13 4-4 4 4" /><path d="M3 11h18" /><path d="m3 11 2.447-4.894A2 2 0 0 1 7.236 5h9.528a2 2 0 0 1 1.789 1.106L21 11" /></svg></span>
+      <span>Ajout recette<span class="sous">Une de tes recettes enregistrées, en un tap</span></span>
+    </button>
+    <button class="feuille-action" onclick="choisirAjoutAliment()">
+      <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" /></svg></span>
+      <span>Ajout aliment<span class="sous">Saisie manuelle, photo ou code-barres</span></span>
+    </button>
+    <button class="btn btn-secondaire" style="margin-top:6px;" onclick="fermerFeuilles()">Annuler</button>
+  </div>
+</div>
+
+<!-- ============ FEUILLE : choix d'une recette enregistrée à ajouter ============ -->
+<div class="feuille" id="feuille-choix-recette" role="dialog" aria-modal="true" aria-labelledby="feuille-choix-recette-titre">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-entete">
+      <div class="feuille-titre" id="feuille-choix-recette-titre"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8" /><path d="M12 19V9" /><path d="m8 13 4-4 4 4" /><path d="M3 11h18" /><path d="m3 11 2.447-4.894A2 2 0 0 1 7.236 5h9.528a2 2 0 0 1 1.789 1.106L21 11" /></svg> Choisir une recette</div>
+      <button class="feuille-fermer" type="button" onclick="fermerFeuilles()" aria-label="Fermer">&times;</button>
+    </div>
+    <div id="choix-recette-liste"></div>
+    <p class="note hidden" id="choix-recette-vide">Aucune recette enregistrée pour l'instant — crée-en une depuis « Mes recettes » sur l'écran Repas.</p>
+  </div>
+</div>
+
 <!-- Saisie manuelle : historique personnel + base d'aliments hébergée -->
 <!-- Pop-up aliment : le poids est le seul champ modifiable -->
 <div id="macros-popup-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="titre-macros-popup">
@@ -3993,7 +4023,7 @@ function renderMeals(day) {
           <span class="meal-kcals">${totalMeal} kcal</span>
         </div>
         <ul class="food-list">${rows}</ul>
-        <button class="btn-ajout-repas" onclick="ouvrirFeuilleRepas('${mealId}')">+ Ajouter un aliment</button>
+        <button class="btn-ajout-repas" onclick="ouvrirChoixAjoutRepas('${mealId}')">+ Ajout recette/aliment</button>
       </div>`;
   }).join('');
 }
@@ -5040,11 +5070,11 @@ function renderRecettesPerso() {
 
 // Ajoute une portion de la recette directement au repas actif, sans ouvrir
 // aucune feuille — « reloguer en un clic », comme demandé.
-function loguerPortionRecettePerso(id) {
+function loguerPortionRecettePerso(id, mealIdCible) {
   const r = recettesPerso.find(x => x.id === id);
   if (!r) return;
   const t = totauxRecettePerso(r);
-  addItemToMeal(activeMealId || repasDuMoment(), {
+  addItemToMeal(mealIdCible || activeMealId || repasDuMoment(), {
     name: r.nom, grams: Math.round(t.grammesParPortion) || 100, unite: 'g',
     kcal: t.parPortionKcal, p: t.parPortionP, c: t.parPortionC, f: t.parPortionF
   });
@@ -7176,6 +7206,55 @@ function ouvrirFeuilleRepas(mealId) {
   document.body.classList.add('couche-ouverte');
   const b = f.querySelector('.feuille-action');
   if (b) setTimeout(() => b.focus(), 60);
+}
+
+/* Première étape du bouton « + Ajout recette/aliment » sur chaque repas :
+   recette (une de celles enregistrées, en un tap) ou aliment (le choix
+   manuel/photo/code-barres déjà existant, voir feuille-repas). */
+function ouvrirChoixAjoutRepas(mealId) {
+  repasFeuille = MEALS.indexOf(mealId) === -1 ? repasDuMoment() : mealId;
+  const t = document.getElementById('feuille-ajout-choix-titre');
+  if (t) t.textContent = 'Ajouter à : ' + (MEAL_LABELS[repasFeuille] || '');
+  ouvrirFeuille('feuille-ajout-choix');
+}
+function choisirAjoutAliment() {
+  fermerFeuilles();
+  ouvrirFeuilleRepas(repasFeuille);
+}
+function choisirAjoutRecette() {
+  fermerFeuilles();
+  renderChoixRecette();
+  ouvrirFeuille('feuille-choix-recette');
+}
+function renderChoixRecette() {
+  const container = document.getElementById('choix-recette-liste');
+  const vide = document.getElementById('choix-recette-vide');
+  if (!container || !vide) return;
+  container.innerHTML = '';
+  if (!recettesPerso.length) {
+    vide.classList.remove('hidden');
+    return;
+  }
+  vide.classList.add('hidden');
+  recettesPerso.forEach(r => {
+    const t = totauxRecettePerso(r);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'off-suggestion';
+    const nomEl = document.createElement('div');
+    nomEl.className = 'off-nom';
+    nomEl.textContent = r.nom;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'off-meta';
+    metaEl.textContent = `${Math.round(t.parPortionKcal)} kcal · P ${Math.round(t.parPortionP)}g · G ${Math.round(t.parPortionC)}g · L ${Math.round(t.parPortionF)}g — par portion`;
+    btn.appendChild(nomEl);
+    btn.appendChild(metaEl);
+    btn.addEventListener('click', () => {
+      loguerPortionRecettePerso(r.id, repasFeuille);
+      fermerFeuilles();
+    });
+    container.appendChild(btn);
+  });
 }
 /* Un seul point de fermeture pour toutes les feuilles (repas, admin
    utilisateur, admin aliments). fermerFeuilles() est défini plus bas ;
