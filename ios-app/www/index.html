@@ -1246,13 +1246,16 @@
       box-shadow: var(--ombre-haute);
     }
     /* Dans la saisie manuelle plein écran (#manual-modal), la liste n'a plus
-       besoin de flotter par-dessus le formulaire ni d'être plafonnée à
-       232px : elle prend sa place normale dans le flux, sur toute la
-       hauteur disponible — c'est elle, l'essentiel de l'écran pendant
-       qu'on cherche. Les champs de saisie manuelle restent juste en
-       dessous, atteignables en descendant. */
+       besoin de flotter par-dessus le formulaire, ni d'être plafonnée à
+       232px — mais elle garde SON PROPRE scroll borné (plutôt que de
+       compter sur le défilement de toute la modale) : plus fiable sur
+       mobile, notamment avec le clavier ouvert, où faire dépendre tout le
+       scroll de la hauteur de la modale (elle-même tributaire du clavier)
+       s'est révélé peu fiable en pratique. Les champs de saisie manuelle
+       restent atteignables en dessous, dans le flux normal de la modale. */
     #manual-modal .off-liste {
-      position: static; width: auto; margin: 12px 0 0; max-height: none;
+      position: static; width: auto; margin: 12px 0 0;
+      max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
       box-shadow: none;
     }
     .off-suggestion {
