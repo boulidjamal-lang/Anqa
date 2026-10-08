@@ -4767,12 +4767,12 @@ function construireHistorique() {
     });
   });
 
-  /* Tri : d'abord ce qui a été mangé récemment, puis ce qui revient souvent.
-     Un aliment d'il y a trois mois mangé vingt fois ne doit pas passer devant
-     celui d'hier — mais entre deux jours identiques, la fréquence tranche. */
+  /* Tri : d'abord ce qui revient le plus souvent, puis ce qui a été mangé
+     récemment. Un aliment mangé vingt fois doit passer devant celui mangé
+     une seule fois hier — mais à fréquence égale, le plus récent tranche. */
   return Array.from(parCle.values()).sort((a, b) => {
-    if (a.dernierJour !== b.dernierJour) return a.dernierJour < b.dernierJour ? 1 : -1;
-    return b.fois - a.fois;
+    if (a.fois !== b.fois) return b.fois - a.fois;
+    return a.dernierJour < b.dernierJour ? 1 : -1;
   });
 }
 
