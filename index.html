@@ -2748,6 +2748,16 @@
     </div>
     <p class="note" style="margin:0 0 14px;">Les aperçus s'appliquent tout de suite dans l'appli pendant que tu règles les couleurs — rien n'est partagé avec les autres comptes tant que tu n'as pas appuyé sur « Enregistrer ».</p>
 
+    <div class="titre-section"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" /></svg> Palettes enregistrées</div>
+    <div class="input-group">
+      <label for="palette-select">Charger une palette déjà enregistrée</label>
+      <select id="palette-select"><option value="">— Aucune —</option></select>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button class="btn btn-secondaire" style="flex:1;" type="button" onclick="chargerPaletteSelectionnee()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg> Charger</button>
+      <button class="btn btn-secondaire" style="flex:1;" type="button" onclick="supprimerPaletteSelectionnee()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Supprimer</button>
+    </div>
+
     <div class="titre-section"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg> Thème clair</div>
     <div class="couleur-ligne"><label for="coul-clair-bg">Fond</label><input type="color" id="coul-clair-bg" oninput="previsualiserCouleursAdmin()"></div>
     <div class="couleur-ligne"><label for="coul-clair-text">Texte</label><input type="color" id="coul-clair-text" oninput="previsualiserCouleursAdmin()"></div>
@@ -2763,6 +2773,12 @@
     <div class="couleur-ligne"><label for="coul-sombre-accent">Couleur secondaire</label><input type="color" id="coul-sombre-accent" oninput="previsualiserCouleursAdmin()"></div>
     <div class="couleur-ligne"><label for="coul-sombre-danger">Alerte</label><input type="color" id="coul-sombre-danger" oninput="previsualiserCouleursAdmin()"></div>
     <div class="couleur-ligne"><label for="coul-sombre-icone">Icônes</label><input type="color" id="coul-sombre-icone" oninput="previsualiserCouleursAdmin()"></div>
+
+    <div class="input-group" style="margin-top:16px;">
+      <label for="nouvelle-palette-nom">Enregistrer les couleurs actuelles comme nouvelle palette</label>
+      <input type="text" id="nouvelle-palette-nom" placeholder="Nom de la palette (ex. « Été », « Test violet »)" maxlength="60">
+    </div>
+    <button class="btn btn-secondaire" style="margin-bottom:16px;" type="button" onclick="enregistrerNouvellePalette()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Enregistrer comme nouvelle palette</button>
 
     <button class="btn btn-secondaire" style="margin-top:16px;" type="button" onclick="reinitialiserCouleursAdmin()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg> Réinitialiser aux couleurs par défaut</button>
     <button class="btn btn-primary" style="margin-top:10px;" type="button" onclick="enregistrerCouleursAdmin()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Enregistrer pour tout le monde</button>
@@ -13051,7 +13067,74 @@ function lireFormulaireCouleurs() {
 }
 function afficherFeuilleCouleursAdmin() {
   remplirFormulaireCouleurs(couleursAppActuelles);
+  chargerPalettesListe();
   ouvrirFeuille('feuille-admin-couleurs');
+}
+// Palettes enregistrées : plusieurs jeux de couleurs nommés, à charger ou
+// écraser librement, séparés des couleurs "actuelles" (theme_couleurs) qui
+// seules sont visibles par tout le monde une fois enregistrées via
+// enregistrerCouleursAdmin(). Mis en cache localement pour éviter une
+// requête Supabase à chaque sélection dans la liste.
+let palettesCouleursCache = [];
+async function chargerPalettesListe() {
+  const sel = document.getElementById('palette-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Aucune —</option>';
+  palettesCouleursCache = [];
+  if (!supa) return;
+  try {
+    const { data, error } = await supa.from('palettes_couleurs').select('nom, donnees').order('nom');
+    if (error) throw error;
+    palettesCouleursCache = data || [];
+    palettesCouleursCache.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.nom;
+      opt.textContent = p.nom;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('[Couleurs] palettes indisponibles :', e.message);
+  }
+}
+function chargerPaletteSelectionnee() {
+  const sel = document.getElementById('palette-select');
+  const nom = sel ? sel.value : '';
+  if (!nom) return;
+  const p = palettesCouleursCache.find(p => p.nom === nom);
+  if (!p) return;
+  remplirFormulaireCouleurs(p.donnees);
+  previsualiserCouleursAdmin();
+}
+async function supprimerPaletteSelectionnee() {
+  const sel = document.getElementById('palette-select');
+  const nom = sel ? sel.value : '';
+  if (!nom || !supa) return;
+  if (!confirm(`Supprimer la palette « ${nom} » ?`)) return;
+  try {
+    const { error } = await supa.from('palettes_couleurs').delete().eq('nom', nom);
+    if (error) throw error;
+    await chargerPalettesListe();
+  } catch (e) {
+    alert('Suppression impossible : ' + e.message);
+  }
+}
+async function enregistrerNouvellePalette() {
+  if (!supa) return;
+  const input = document.getElementById('nouvelle-palette-nom');
+  const nom = input ? input.value.trim() : '';
+  if (!nom) { alert('Donne un nom à la palette avant de l\'enregistrer.'); return; }
+  const donnees = lireFormulaireCouleurs();
+  try {
+    const { error } = await supa.from('palettes_couleurs')
+      .upsert({ nom, donnees, maj: Date.now(), modifie_par: sessionUtilisateur ? sessionUtilisateur.email : 'inconnu' }, { onConflict: 'nom' });
+    if (error) throw error;
+    if (input) input.value = '';
+    await chargerPalettesListe();
+    const sel = document.getElementById('palette-select');
+    if (sel) sel.value = nom;
+  } catch (e) {
+    alert('Enregistrement impossible : ' + e.message);
+  }
 }
 // Aperçu en direct pendant que l'admin règle les couleurs : appliqué tout
 // de suite dans l'appli (voir appliquerCouleursApp), rien n'est encore
