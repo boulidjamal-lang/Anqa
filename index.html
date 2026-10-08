@@ -247,6 +247,11 @@
       font-size: clamp(14.5px, 4.05vw, 17.5px);
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
+      /* Sans ça, la zone sous l'encoche/l'île dynamique (viewport-fit=cover)
+         reste noire par défaut sur iOS en mode "écran d'accueil" (standalone)
+         — cette zone appartient à <html>, pas à <body> qui porte déjà le
+         fond ailleurs, d'où le bandeau visible même quand le thème est clair. */
+      background: var(--bg);
     }
     html, body { min-height: 100%; touch-action: pan-x pan-y; }
     body {
