@@ -4357,6 +4357,11 @@ function ouvrirModal(id) {
   if (!el) return;
   el.classList.add('show');
   document.body.classList.add('couche-ouverte');
+  // Le bilan initial ouvre d'abord un choix de boutons (Sexe) avant tout
+  // champ texte : focus auto dessus ferait surgir le clavier tactile juste
+  // au moment où la personne tente de toucher Homme/Femme, et sur certains
+  // mobiles ce tap-là se perd dans la transition du clavier.
+  if (id === 'modal-bienvenue') return;
   /* La croix de fermeture arrive avant le champ dans le DOM : le sélecteur
      précédent lui donnait le focus, si bien qu'Entrée refermait la fenêtre
      au lieu de valider, et que le champ de recherche ne s'ouvrait jamais
@@ -8004,6 +8009,14 @@ function brancherChoixOnboarding() {
     });
   });
 }
+/* Branchés dès que ce script s'exécute, pas à l'évènement 'load' : juste
+   après la création d'un compte, la modale de bienvenue peut s'ouvrir avant
+   que 'load' n'arrive (il attend aussi les scripts externes — scanner,
+   graphiques, Supabase — et peut traîner sur un réseau mobile lent), ce qui
+   laissait les boutons Homme/Femme sans aucun gestionnaire de clic. Les
+   éléments du formulaire existent déjà à ce stade : ce script se trouve
+   après eux dans le document. */
+brancherChoixOnboarding();
 
 /* =====================================================================
    ADMINISTRATION — recherche, filtre et vue d'ensemble
@@ -12613,7 +12626,6 @@ window.addEventListener('load', () => {
   if (lim) document.getElementById('ia-limite').value = lim;
   majAffichageIA();
 
-  brancherChoixOnboarding();
   renderApp();
   majNoteCleIA();
   majUIWithings();
