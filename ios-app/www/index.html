@@ -7267,8 +7267,7 @@ const TOUR_ETAPES = [
 let tourActif = false;
 let tourEtape = 0;
 let tourResizeHandler = null;
-
-function apresRenduTour(fn) { requestAnimationFrame(() => requestAnimationFrame(fn)); }
+let tourGeneration = 0;
 
 function demarrerTourGuide() {
   fermerFeuilles();
@@ -7287,6 +7286,7 @@ function demarrerTourGuide() {
 function afficherEtapeTour() {
   const etape = TOUR_ETAPES[tourEtape];
   if (!etape) { fermerTourGuide(); return; }
+  const gen = ++tourGeneration;
   if (etape.ecran && etape.ecran !== ecranActif) allerA(etape.ecran);
   if (etape.fab) { if (!fabOuvert) ouvrirFab(); }
   else if (fabOuvert) fermerFab();
@@ -7301,11 +7301,53 @@ function afficherEtapeTour() {
   } else if (document.querySelector('.feuille.show')) {
     fermerFeuilles();
   }
-  apresRenduTour(() => {
-    const cible = etape.cible ? document.querySelector(etape.cible) : null;
-    if (cible) cible.scrollIntoView({ block: 'center', behavior: 'auto' });
-    apresRenduTour(() => positionnerTourEtape(cible, etape));
+  const cible = etape.cible ? document.querySelector(etape.cible) : null;
+  if (cible) cible.scrollIntoView({ block: 'center', behavior: 'auto' });
+  attendreMiseEnPageStable(cible, gen, () => {
+    // Une étape suivante peut avoir démarré entre-temps (clics rapides) :
+    // une bulle qui se replace alors sur une cible qu'on a déjà quittée
+    // ferait un aller-retour visible. tourGeneration l'évite.
+    if (gen !== tourGeneration) return;
+    positionnerTourEtape(cible, etape);
   });
+}
+
+/* Le menu flottant (transitions CSS échelonnées), une feuille (glissée
+   depuis le bas) et même un changement d'écran (ex. Statistiques, dont une
+   partie du contenu musculation s'insère ~150 ms après coup, une fois son
+   propre calcul terminé) peuvent encore bouger la cible après le premier
+   rendu. Plutôt que deviner un délai fixe par cas, on ré-échantillonne sa
+   position à chaque frame et on ne positionne la bulle qu'une fois deux
+   mesures consécutives identiques — signe que tout mouvement est terminé,
+   qu'il vienne d'une animation CSS ou d'un contenu inséré après coup. Le
+   plafond d'essais est un garde-fou si quelque chose bougeait en continu.
+   Une « courbe ease-out » (fin de transition très lente) peut aussi faire
+   paraître deux frames identiques alors que ça bouge encore d'un cheveu :
+   un second passage, un peu plus tard, rattrape ce résidu — sans à-coup
+   visible puisque la bulle glisse déjà vers sa position avec sa propre
+   transition CSS. */
+function signatureRect(el) {
+  const r = el.getBoundingClientRect();
+  return r.top.toFixed(1) + ',' + r.left.toFixed(1) + ',' + r.width.toFixed(1) + ',' + r.height.toFixed(1);
+}
+function attendreMiseEnPageStable(el, gen, cb, essai, dernierSig, pareilles) {
+  essai = essai || 0; pareilles = pareilles || 0;
+  // Une seule paire de frames identiques se déclenche parfois sur un simple
+  // palier au sommet d'un léger dépassement ("overshoot") de la courbe
+  // d'animation, pas sur la position finale : on exige 6 échantillons de
+  // suite identiques (~100 ms sans le moindre mouvement) avant de conclure.
+  if (!el || essai >= 60 || gen !== tourGeneration) { cb(); return; }
+  const sig = signatureRect(el);
+  if (sig === dernierSig) pareilles++; else pareilles = 0;
+  if (pareilles >= 6) {
+    cb();
+    // Filet de sécurité final, au cas où quelque chose bouge encore trop
+    // lentement pour franchir ce seuil : la bulle glisse alors en douceur
+    // vers sa position corrigée grâce à sa propre transition CSS.
+    setTimeout(() => { if (gen === tourGeneration) cb(); }, 220);
+    return;
+  }
+  requestAnimationFrame(() => attendreMiseEnPageStable(el, gen, cb, essai + 1, sig, pareilles));
 }
 
 function positionnerTourEtape(cible, etape) {
@@ -7363,6 +7405,7 @@ function tourPrecedent() {
 }
 function fermerTourGuide() {
   tourActif = false;
+  tourGeneration++;
   document.getElementById('tour-overlay').classList.add('hidden');
   if (fabOuvert) fermerFab();
   if (document.querySelector('.feuille.show')) fermerFeuilles();
