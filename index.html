@@ -437,7 +437,16 @@
       background: var(--barre);
       -webkit-backdrop-filter: blur(var(--verre-flou)) saturate(var(--verre-sat));
       backdrop-filter: blur(var(--verre-flou)) saturate(var(--verre-sat));
+      transition: padding 0.22s ease;
     }
+    /* Rétrécie dès qu'on scrolle (voir majAppBarScroll) : gagne de la place
+       pour le contenu, puis redevient pleine taille en remontant tout en
+       haut — comme les grands titres repliables iOS. */
+    .app-bar--compact {
+      padding-top: calc(5px + env(safe-area-inset-top, 0px)); padding-bottom: 5px;
+    }
+    .app-bar--compact .logo-anqa { width: 21px; height: 24px; }
+    .app-bar--compact .marque-anqa { font-size: 0.92rem; }
     /* Encore plus sombre qu'un simple var(--barre) : couleur dédiée plutôt
        que retoucher --barre (réutilisé ailleurs, pour des puces/popups) et
        saturate() bien réduit — 190% (var(--verre-sat)) amplifiait trop les
@@ -468,10 +477,11 @@
       -webkit-mask-size: contain; mask-size: contain;
       -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
       -webkit-mask-position: center; mask-position: center;
+      transition: width 0.22s ease, height 0.22s ease;
     }
     /* Cinzel réservée à la marque : gravée/impériale, contraste volontaire
        avec Outfit qui reste la police de tout le reste de l'appli. */
-    .marque-anqa { font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.15rem; letter-spacing: 1.5px; }
+    .marque-anqa { font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.15rem; letter-spacing: 1.5px; transition: font-size 0.22s ease; }
     .header-buttons { display: flex; gap: 8px; }
 
     /* Aplati au même niveau que .filtre-chip/.chip-code : plus de flou
@@ -6541,6 +6551,7 @@ function allerA(nom) {
   document.body.classList.toggle('sur-stats', nom === 'stats');
   document.body.classList.toggle('sur-seance', nom === 'seance');
   window.scrollTo({ top: 0, behavior: 'auto' });
+  reduireAppBar(false);
   if (nom === 'stats') { prepareStats(); }
   if (nom === 'seance') { renderSeance(); }
   if (nom === 'repas') majNoteCleIA();
@@ -6555,6 +6566,31 @@ function allerA(nom) {
   // et doit réapparaître dès qu'on le quitte avec une séance toujours active.
   majBandeauSeanceFlottant();
 }
+
+/* Bandeau du haut rétréci au scroll, comme un grand titre repliable iOS :
+   laisse plus de place au contenu une fois qu'on a commencé à lire, revient
+   pleine taille dès qu'on remonte tout en haut. Deux seuils différents pour
+   réduire/agrandir (hystérésis) : avec un seuil unique, un scroll qui
+   oscille à peine autour de lui ferait clignoter le bandeau sans arrêt. */
+let appBarReduite = false;
+function reduireAppBar(etat) {
+  if (etat === appBarReduite) return;
+  appBarReduite = etat;
+  const el = document.querySelector('.app-bar');
+  if (el) el.classList.toggle('app-bar--compact', etat);
+}
+let appBarScrollEnAttente = false;
+function onScrollAppBar() {
+  appBarScrollEnAttente = false;
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  if (!appBarReduite && y > 48) reduireAppBar(true);
+  else if (appBarReduite && y < 12) reduireAppBar(false);
+}
+window.addEventListener('scroll', () => {
+  if (appBarScrollEnAttente) return;
+  appBarScrollEnAttente = true;
+  requestAnimationFrame(onScrollAppBar);
+}, { passive: true });
 
 function majNoteCleIA() {
   const n = document.getElementById('note-cle-ia');
