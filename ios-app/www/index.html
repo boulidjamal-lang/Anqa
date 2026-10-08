@@ -502,6 +502,7 @@
     .feu-logo {
       position: absolute; left: -1px; top: 50%; width: 1px; height: 1px;
       pointer-events: none;
+      transform-origin: 0% 50%;
     }
     .feu-logo > * { position: absolute; left: 0; top: 0; opacity: 0; }
 
@@ -534,8 +535,8 @@
       height: 3px; width: 36px; margin-top: -1.5px;
       background: linear-gradient(90deg, #ffffff 0%, #fff6cf 20%, #ffd467 45%, #ff9a2e 72%, rgba(255,120,0,0) 97%);
     }
-    .feu-logo.actif .jet-corps { animation: jetSouffle 0.55s cubic-bezier(.15,.8,.2,1) 0.02s; }
-    .feu-logo.actif .jet-coeur { animation: jetSouffle 0.5s cubic-bezier(.15,.8,.2,1) 0.04s; }
+    .feu-logo.actif .jet-corps { animation: jetSouffle 0.72s cubic-bezier(.15,.8,.2,1) 0.02s; }
+    .feu-logo.actif .jet-coeur { animation: jetSouffle 0.66s cubic-bezier(.15,.8,.2,1) 0.04s; }
     @keyframes jetSouffle {
       0%   { opacity: 0;   transform: rotate(8deg) scaleX(0.08) scaleY(0.6); }
       14%  { opacity: 1;   transform: rotate(8deg) scaleX(0.8) scaleY(1.15); }
@@ -6728,6 +6729,20 @@ function animerFeuLogo() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const feu = document.getElementById('feu-logo');
   if (!feu) return;
+  // Le souffle doit traverser tout le bandeau, jusqu'au badge de
+  // synchronisation (« En ligne »/« Erreur ») à droite — on mesure la
+  // distance réelle et on étire tout l'effet (jet, braises, fumée) d'un
+  // seul coup via un scaleX sur le conteneur, plutôt que de recalculer
+  // chaque longueur à la main. 48px = portée « de base » dessinée dans le
+  // CSS (jet + braises + fumée) pour un ratio de 1.
+  let cible = document.getElementById('puce-sync');
+  if (!cible || cible.offsetParent === null) cible = document.querySelector('.app-bar-inner');
+  if (cible) {
+    const feuRect = feu.getBoundingClientRect();
+    const cibleRect = cible.getBoundingClientRect();
+    const portee = Math.max(50, cibleRect.right - feuRect.left - 10);
+    feu.style.transform = 'scaleX(' + Math.min(portee / 48, 9) + ')';
+  }
   feu.classList.remove('actif');
   void feu.offsetWidth;
   feu.classList.add('actif');
