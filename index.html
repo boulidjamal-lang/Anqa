@@ -1891,6 +1891,11 @@
     <div id="recperso-liste"></div>
     <button class="btn btn-secondaire" style="width:100%; margin-bottom:18px;" type="button" onclick="ouvrirCreationRecettePerso()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg> Créer une recette</button>
 
+    <div class="titre-section"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg> Repas-types</div>
+    <p class="note note-explicative">Un repas entier (plusieurs aliments), ajouté en un tap — pratique pour un petit-déj ou un déjeuner qui revient souvent.</p>
+    <div id="repastype-liste"></div>
+    <button class="btn btn-secondaire" style="width:100%; margin-bottom:18px;" type="button" onclick="ouvrirCreationRepasType()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg> Créer un repas-type</button>
+
     <div id="meals-container"></div>
 
     <div class="titre-section"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg> Bilan de la journée</div>
@@ -2653,6 +2658,42 @@
 
     <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" type="button" onclick="validerRecettePerso()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Enregistrer la recette</button>
     <button class="btn btn-secondaire hidden" id="btn-supprimer-recperso" style="width:100%; color:var(--danger);" type="button" onclick="supprimerRecettePersoEnEdition()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Supprimer cette recette</button>
+  </div>
+</div>
+
+<!-- ============ FEUILLE : repas-type (plusieurs aliments séparés, ajoutés
+     ensemble à un repas en un tap — différent d'une recette : chaque
+     aliment reste un élément distinct du repas, pas fusionné en un plat) ============ -->
+<div class="feuille" id="feuille-repas-type" role="dialog" aria-modal="true" aria-labelledby="titre-repas-type">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-entete">
+      <div class="feuille-titre" id="titre-repas-type"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg> Nouveau repas-type</div>
+      <button class="feuille-fermer" type="button" onclick="fermerFeuilles()" aria-label="Fermer">&times;</button>
+    </div>
+
+    <div class="input-group">
+      <label for="repastype-nom">Nom du repas-type</label>
+      <input type="text" id="repastype-nom" placeholder="ex : Petit-déj habituel" autocomplete="off">
+    </div>
+
+    <label style="display:block; font-weight:700; font-size:0.72rem; margin:14px 0 8px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">Aliments</label>
+    <div id="repastype-ingredients-liste"></div>
+
+    <div class="input-group" style="position:relative;">
+      <label for="repastype-ingredient-recherche">Ajouter un aliment</label>
+      <input type="text" id="repastype-ingredient-recherche" placeholder="ex : café, œufs, pain…" autocomplete="off" oninput="rechercherIngredientRepasType(this.value)">
+      <div id="repastype-ingredient-suggestions" class="off-liste" style="display:none;"></div>
+    </div>
+
+    <div class="bloc-verre" style="padding:14px; margin:16px 0;">
+      <label style="display:block; font-weight:700; font-size:0.72rem; margin-bottom:8px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px;">Total du repas</label>
+      <div id="repastype-total-kcal" style="font-weight:800; font-size:1.1rem;">0 kcal</div>
+      <div id="repastype-total-macros" style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Protéines 0 g · Glucides 0 g · Lipides 0 g</div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" type="button" onclick="validerRepasType()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Enregistrer le repas-type</button>
+    <button class="btn btn-secondaire hidden" id="btn-supprimer-repastype" style="width:100%; color:var(--danger);" type="button" onclick="supprimerRepasTypeEnEdition()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg> Supprimer ce repas-type</button>
   </div>
 </div>
 
@@ -3994,6 +4035,7 @@ function renderMeals(day) {
         </div>
         <ul class="food-list">${rows}</ul>
         <button class="btn-ajout-repas" onclick="ouvrirFeuilleRepas('${mealId}')">+ Ajouter un aliment</button>
+        ${items.length ? `<button class="btn-ajout-repas" onclick="enregistrerRepasCommeModele('${mealId}')"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Enregistrer comme modèle</button>` : ''}
       </div>`;
   }).join('');
 }
@@ -5220,6 +5262,326 @@ async function supprimerRecettePersoEnEdition() {
   recettesPerso = recettesPerso.filter(r => r.id !== recettePersoEnEdition.id);
   try { localStorage.setItem(RECETTES_PERSO_KEY, JSON.stringify(recettesPerso)); } catch (e) {}
   renderRecettesPerso();
+  fermerFeuilles();
+}
+
+/* =====================================================================
+   REPAS-TYPES — plusieurs aliments séparés (contrairement aux recettes,
+   pas fusionnés en un seul plat) enregistrés ensemble sous un nom, pour
+   reconstituer un repas entier en un tap (« mon petit-déj habituel »).
+   Même table/schéma que les recettes perso (utilisateur/id/donnees/maj),
+   dans repas_types. */
+let repasTypes = [];
+const REPAS_TYPES_KEY = 'elite_repas_types_v1';
+let repasTypeEnEdition = null; // { id, nom, ingredients: [{nom, grammes, kcal100, p100, c100, f100}] }
+
+function totalRepasType(r) {
+  const ingredients = (r && r.ingredients) || [];
+  return {
+    kcal: ingredients.reduce((s, i) => s + (Number(i.grammes) || 0) / 100 * (Number(i.kcal100) || 0), 0),
+    p: ingredients.reduce((s, i) => s + (Number(i.grammes) || 0) / 100 * (Number(i.p100) || 0), 0),
+    c: ingredients.reduce((s, i) => s + (Number(i.grammes) || 0) / 100 * (Number(i.c100) || 0), 0),
+    f: ingredients.reduce((s, i) => s + (Number(i.grammes) || 0) / 100 * (Number(i.f100) || 0), 0)
+  };
+}
+
+async function chargerRepasTypes() {
+  try { repasTypes = JSON.parse(localStorage.getItem(REPAS_TYPES_KEY)) || []; } catch (e) { repasTypes = []; }
+  renderRepasTypes();
+  if (!supa || !sessionUtilisateur) return;
+  try {
+    const { data, error } = await supa.from('repas_types').select('id,donnees').eq('utilisateur', sessionUtilisateur.id);
+    if (error) throw error;
+    repasTypes = (data || []).filter(r => r.donnees).map(r => Object.assign({}, r.donnees, { id: r.id }));
+    try { localStorage.setItem(REPAS_TYPES_KEY, JSON.stringify(repasTypes)); } catch (e) {}
+    renderRepasTypes();
+  } catch (e) {
+    console.warn('[Repas-types] chargement indisponible :', e.message);
+  }
+}
+
+async function enregistrerRepasTypeDistant(r) {
+  if (!supa || !sessionUtilisateur) { alert('Connecte-toi pour enregistrer un repas-type.'); return false; }
+  try {
+    const { error } = await supa.from('repas_types')
+      .upsert({ utilisateur: sessionUtilisateur.id, id: r.id, donnees: r, maj: Date.now() }, { onConflict: 'utilisateur,id' });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    alert('Enregistrement du repas-type impossible : ' + e.message);
+    return false;
+  }
+}
+
+async function supprimerRepasTypeDistant(id) {
+  if (!supa || !sessionUtilisateur) return false;
+  try {
+    const { error } = await supa.from('repas_types').delete().eq('utilisateur', sessionUtilisateur.id).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    alert('Suppression du repas-type impossible : ' + e.message);
+    return false;
+  }
+}
+
+function renderRepasTypes() {
+  const container = document.getElementById('repastype-liste');
+  if (!container) return;
+  container.innerHTML = '';
+  repasTypes.forEach(r => {
+    const t = totalRepasType(r);
+    const carte = document.createElement('div');
+    carte.className = 'fitness-card';
+    carte.style.marginBottom = '10px';
+
+    const ligne = document.createElement('div');
+    ligne.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px;';
+
+    const btnNom = document.createElement('button');
+    btnNom.type = 'button';
+    btnNom.style.cssText = 'flex:1; text-align:left; background:none; border:0; padding:0; cursor:pointer; color:inherit; font-family:inherit;';
+    const nomEl = document.createElement('div');
+    nomEl.style.fontWeight = '800';
+    nomEl.textContent = r.nom;
+    const metaEl = document.createElement('div');
+    metaEl.style.cssText = 'font-size:0.78rem; color:var(--text-muted);';
+    metaEl.textContent = `${Math.round(t.kcal)} kcal · P ${Math.round(t.p)}g · G ${Math.round(t.c)}g · L ${Math.round(t.f)}g · ${r.ingredients.length} aliment${r.ingredients.length > 1 ? 's' : ''}`;
+    btnNom.appendChild(nomEl);
+    btnNom.appendChild(metaEl);
+    btnNom.addEventListener('click', () => ouvrirCreationRepasType(null, r.id));
+
+    const btnAppliquer = document.createElement('button');
+    btnAppliquer.type = 'button';
+    btnAppliquer.className = 'btn-icone';
+    btnAppliquer.title = 'Ajouter ce repas au repas actif';
+    btnAppliquer.style.flex = 'none';
+    btnAppliquer.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>';
+    btnAppliquer.addEventListener('click', () => appliquerRepasType(r.id));
+
+    ligne.appendChild(btnNom);
+    ligne.appendChild(btnAppliquer);
+    carte.appendChild(ligne);
+    container.appendChild(carte);
+  });
+}
+
+// Ajoute tous les aliments du repas-type au repas actif en une fois,
+// chacun restant un élément distinct (modifiable/supprimable ensuite
+// individuellement, contrairement à une recette fusionnée en un plat).
+function appliquerRepasType(id) {
+  const r = repasTypes.find(x => x.id === id);
+  if (!r || !r.ingredients.length) return;
+  const mealId = activeMealId || 'lunch';
+  const day = getDay(currentDate);
+  r.ingredients.forEach(ing => {
+    const f = (Number(ing.grammes) || 0) / 100;
+    day.meals[mealId].push({
+      name: ing.nom, grams: Number(ing.grammes) || 0, unite: 'g',
+      kcal: (Number(ing.kcal100) || 0) * f, p: (Number(ing.p100) || 0) * f,
+      c: (Number(ing.c100) || 0) * f, f: (Number(ing.f100) || 0) * f
+    });
+  });
+  saveData(currentDate);
+  invaliderHistorique();
+  r.ingredients.forEach(ing => enregistrerAlimentDansBase({
+    name: ing.nom, grams: Number(ing.grammes) || 0, unite: 'g',
+    kcal: (Number(ing.kcal100) || 0) * (Number(ing.grammes) || 0) / 100
+  }));
+  renderMeals(day);
+  updateSummary(day);
+}
+
+// Ouvre la feuille soit vide (nouveau repas-type), soit pré-remplie depuis
+// un repas déjà loggé aujourd'hui (idRepasType absent, itemsInitiaux
+// fourni), soit pour modifier un repas-type existant (idRepasType fourni).
+function ouvrirCreationRepasType(itemsInitiaux, idRepasType) {
+  const existant = idRepasType ? repasTypes.find(r => r.id === idRepasType) : null;
+  if (existant) {
+    repasTypeEnEdition = JSON.parse(JSON.stringify(existant));
+  } else if (itemsInitiaux && itemsInitiaux.length) {
+    repasTypeEnEdition = {
+      id: identifiantUnique(), nom: '',
+      ingredients: itemsInitiaux.map(it => {
+        const g = Number(it.grams) || 100;
+        return {
+          nom: it.name, grammes: g,
+          kcal100: Math.round((Number(it.kcal) || 0) / g * 100),
+          p100: round1((Number(it.p) || 0) / g * 100) || 0,
+          c100: round1((Number(it.c) || 0) / g * 100) || 0,
+          f100: round1((Number(it.f) || 0) / g * 100) || 0
+        };
+      })
+    };
+  } else {
+    repasTypeEnEdition = { id: identifiantUnique(), nom: '', ingredients: [] };
+  }
+
+  document.getElementById('repastype-nom').value = repasTypeEnEdition.nom;
+  document.getElementById('repastype-ingredient-recherche').value = '';
+  const suggestions = document.getElementById('repastype-ingredient-suggestions');
+  suggestions.innerHTML = '';
+  suggestions.style.display = 'none';
+  document.getElementById('btn-supprimer-repastype').classList.toggle('hidden', !existant);
+  document.getElementById('titre-repas-type').lastChild.textContent = existant ? ' Modifier le repas-type' : ' Nouveau repas-type';
+  renderIngredientsRepasType();
+  ouvrirFeuille('feuille-repas-type');
+}
+
+// Raccourci depuis un repas déjà rempli (bouton « Enregistrer comme
+// modèle » sur chaque carte de repas) : part de ce qui est déjà loggé
+// plutôt que de tout re-chercher.
+function enregistrerRepasCommeModele(mealId) {
+  const day = getDay(currentDate);
+  const items = day.meals[mealId] || [];
+  if (!items.length) return;
+  ouvrirCreationRepasType(items);
+}
+
+function renderIngredientsRepasType() {
+  const container = document.getElementById('repastype-ingredients-liste');
+  container.innerHTML = '';
+  if (!repasTypeEnEdition.ingredients.length) {
+    const p = document.createElement('p');
+    p.className = 'note';
+    p.textContent = 'Aucun aliment pour l\'instant — cherche-en un ci-dessous.';
+    container.appendChild(p);
+  }
+  repasTypeEnEdition.ingredients.forEach((ing, i) => {
+    const row = document.createElement('div');
+    row.className = 'off-suggestion';
+    row.style.cssText = 'display:flex; align-items:center; gap:10px; cursor:default; margin-bottom:8px; border-radius:12px;';
+
+    const infos = document.createElement('div');
+    infos.style.flex = '1';
+    const nomEl = document.createElement('div');
+    nomEl.className = 'off-nom';
+    nomEl.textContent = ing.nom;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'off-meta';
+    metaEl.textContent = ing.kcal100 + ' kcal/100 g';
+    infos.appendChild(nomEl);
+    infos.appendChild(metaEl);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = ing.grammes;
+    input.style.cssText = 'width:64px; text-align:center;';
+    input.addEventListener('input', () => majQuantiteIngredientRepasType(i, input.value));
+
+    const unite = document.createElement('span');
+    unite.style.cssText = 'font-size:0.78rem; color:var(--text-muted); flex:none;';
+    unite.textContent = 'g';
+
+    const btnSup = document.createElement('button');
+    btnSup.type = 'button';
+    btnSup.className = 'btn-icone';
+    btnSup.style.flex = 'none';
+    btnSup.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>';
+    btnSup.addEventListener('click', () => retirerIngredientRepasType(i));
+
+    row.appendChild(infos);
+    row.appendChild(input);
+    row.appendChild(unite);
+    row.appendChild(btnSup);
+    container.appendChild(row);
+  });
+  renderTotalRepasType();
+}
+
+function majQuantiteIngredientRepasType(index, valeur) {
+  repasTypeEnEdition.ingredients[index].grammes = Math.max(0, Number(valeur) || 0);
+  renderTotalRepasType();
+}
+
+function retirerIngredientRepasType(index) {
+  repasTypeEnEdition.ingredients.splice(index, 1);
+  renderIngredientsRepasType();
+}
+
+function renderTotalRepasType() {
+  const t = totalRepasType(repasTypeEnEdition);
+  document.getElementById('repastype-total-kcal').textContent = Math.round(t.kcal) + ' kcal';
+  document.getElementById('repastype-total-macros').textContent =
+    `Protéines ${Math.round(t.p)} g · Glucides ${Math.round(t.c)} g · Lipides ${Math.round(t.f)} g`;
+}
+
+let numeroRechercheRepasType = 0;
+async function rechercherIngredientRepasType(query) {
+  const monNumero = ++numeroRechercheRepasType;
+  const suggestions = document.getElementById('repastype-ingredient-suggestions');
+  if (!suggestions) return;
+  const q = query.trim();
+  if (q.length < 2) { suggestions.innerHTML = ''; suggestions.style.display = 'none'; return; }
+  const { deja, suite } = await rechercherTousAliments(q);
+  if (monNumero !== numeroRechercheRepasType) return;
+  afficherSuggestionsIngredientRepasType(deja.concat(suite));
+}
+
+function afficherSuggestionsIngredientRepasType(produits) {
+  const container = document.getElementById('repastype-ingredient-suggestions');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!produits.length) { container.style.display = 'none'; return; }
+  produits.slice(0, 15).forEach(p => {
+    const kcal = Math.round((p.nutriments && p.nutriments['energy-kcal_100g']) || 0);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'off-suggestion';
+    const nomEl = document.createElement('div');
+    nomEl.className = 'off-nom';
+    nomEl.textContent = p.name || 'Produit inconnu';
+    const metaEl = document.createElement('div');
+    metaEl.className = 'off-meta';
+    metaEl.textContent = kcal + ' kcal/100 g';
+    btn.appendChild(nomEl);
+    btn.appendChild(metaEl);
+    btn.addEventListener('click', () => ajouterIngredientRepasType(p));
+    container.appendChild(btn);
+  });
+  container.style.display = 'block';
+}
+
+function ajouterIngredientRepasType(p) {
+  const n = p.nutriments || {};
+  repasTypeEnEdition.ingredients.push({
+    nom: p.name || 'Aliment',
+    grammes: p.grammes > 0 ? Number(p.grammes) : 100,
+    kcal100: Math.round(n['energy-kcal_100g'] || 0),
+    p100: round1(n['proteins_100g']) || 0,
+    c100: round1(n['carbohydrates_100g']) || 0,
+    f100: round1(n['fat_100g']) || 0
+  });
+  document.getElementById('repastype-ingredient-recherche').value = '';
+  const suggestions = document.getElementById('repastype-ingredient-suggestions');
+  suggestions.innerHTML = '';
+  suggestions.style.display = 'none';
+  renderIngredientsRepasType();
+}
+
+async function validerRepasType() {
+  const nom = document.getElementById('repastype-nom').value.trim();
+  if (!nom) { alert('Donne un nom au repas-type.'); return; }
+  if (!repasTypeEnEdition.ingredients.length) { alert('Ajoute au moins un aliment.'); return; }
+  repasTypeEnEdition.nom = nom;
+
+  const ok = await enregistrerRepasTypeDistant(repasTypeEnEdition);
+  if (!ok) return;
+  const idx = repasTypes.findIndex(r => r.id === repasTypeEnEdition.id);
+  if (idx === -1) repasTypes.push(repasTypeEnEdition); else repasTypes[idx] = repasTypeEnEdition;
+  try { localStorage.setItem(REPAS_TYPES_KEY, JSON.stringify(repasTypes)); } catch (e) {}
+  renderRepasTypes();
+  fermerFeuilles();
+}
+
+async function supprimerRepasTypeEnEdition() {
+  if (!repasTypeEnEdition || !repasTypeEnEdition.nom) return;
+  if (!confirm(`Supprimer le repas-type « ${repasTypeEnEdition.nom} » ?`)) return;
+  const ok = await supprimerRepasTypeDistant(repasTypeEnEdition.id);
+  if (!ok) return;
+  repasTypes = repasTypes.filter(r => r.id !== repasTypeEnEdition.id);
+  try { localStorage.setItem(REPAS_TYPES_KEY, JSON.stringify(repasTypes)); } catch (e) {}
+  renderRepasTypes();
   fermerFeuilles();
 }
 
@@ -9016,6 +9378,7 @@ async function synchroniser(raison) {
     chargerExercicesCommunaute(id);
     chargerBaseOverrides();
     chargerRecettesPerso();
+    chargerRepasTypes();
 
     // Les aliments en attente repartent avec la même occasion réseau.
     viderFileAliments();
@@ -12446,6 +12809,7 @@ window.addEventListener('load', () => {
   loadData();
   chargerMuscu();
   chargerRecettesPerso();
+  chargerRepasTypes();
   // Lancé ici, au tout premier chargement de l'appli — pas seulement en
   // arrivant sur l'onglet Séance (voir renderListeProgrammes) — pour que
   // les photos des exercices des programmes soient déjà en cache le temps
