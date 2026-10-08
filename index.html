@@ -1886,8 +1886,8 @@
           <option value="masse">Prise de masse</option>
         </select>
       </div>
-      <p class="note" style="margin:10px 0 0;">Pas besoin de le re-choisir chaque jour : une fois réglé, il reste actif jusqu'à ce que tu le changes — inutile de le retoucher avant ton prochain vrai changement d'objectif, dans quelques mois. Le changer ne modifie que la suite : l'historique de tes statistiques passées n'est jamais réécrit.</p>
-      <p class="note" style="margin:10px 0 0;" id="note-recomposition">🔄 <strong>Recomposition</strong> : mêmes calories qu'en maintien, mais protéines aussi élevées qu'en sèche — pour prendre du muscle et perdre du gras en même temps. Fonctionne surtout si tu progresses encore en charge à l'entraînement et que tu as des réserves de graisse (le corps y puise l'énergie du gain musculaire).</p>
+      <p class="note" style="margin:10px 0 0;">Reste actif jusqu'à ce que tu le changes — l'historique passé n'est jamais réécrit.</p>
+      <p class="note hidden" style="margin:10px 0 0;" id="note-recomposition">🔄 Mêmes calories qu'en maintien, mais protéines d'une sèche — pour prendre du muscle et perdre du gras en même temps (fonctionne surtout si tu progresses encore en charge).</p>
     </div>
 
     <div class="fitness-card">
@@ -1959,7 +1959,7 @@
         <button class="btn btn-primary" style="flex:1; min-height:auto; padding:10px 8px; font-size:0.78rem;" onclick="ouvrirCreationProgramme()">➕ Créer un programme</button>
         <button class="btn btn-secondaire" style="flex:1; min-height:auto; padding:10px 8px; font-size:0.78rem;" onclick="demarrerSeanceLibre()">⚡ Séance libre</button>
       </div>
-      <p class="note" style="margin:10px 2px 0;">Une séance libre n'est rattachée à aucun programme : choisis tes exercices au fil de la séance, tu pourras l'enregistrer comme programme à la fin.</p>
+      <p class="note" style="margin:10px 2px 0;">Séance libre : choisis tes exercices au fil de l'eau, tu pourras l'enregistrer comme programme à la fin.</p>
 
       <div class="titre-section">📚 Bibliothèque d'exercices</div>
       <div class="fitness-card">
@@ -2333,7 +2333,7 @@
       <label style="display:block;font-weight:700;font-size:0.72rem;margin-bottom:6px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">
         ☁️ Synchronisation (facultative)
       </label>
-      <p class="note">Tout est enregistré sur cet appareil, y compris hors ligne. L'application est préconfigurée avec le projet Supabase par défaut : tu n'as rien à saisir ici pour que ça fonctionne. Ne remplis les champs ci-dessous que si tu veux utiliser un <em>autre</em> projet ; laisse-les vides pour revenir automatiquement au projet par défaut (y compris s'il est mis à jour plus tard).</p>
+      <p class="note">Préconfigurée par défaut, rien à saisir. Remplis ces champs seulement pour utiliser un <em>autre</em> projet Supabase.</p>
 
       <div class="input-group">
         <label for="supa-url">URL du projet <small style="font-weight:400;color:var(--text-muted);">(optionnel — vide = projet par défaut)</small></label>
@@ -2350,7 +2350,6 @@
       </div>
 
       <p class="note" id="note-sync" style="margin:10px 0 0;"></p>
-      <p class="note" style="margin:8px 0 0;">L'état détaillé de la synchronisation est visible dans le pop-up ☁️ « À jour » sur l'écran principal.</p>
       <p class="note" id="popup-note-base" style="margin:8px 0 0;"></p>
       <details style="margin-top:10px;">
         <summary style="cursor:pointer;font-size:0.75rem;color:var(--text-muted);font-weight:700;">Préparer la table des aliments</summary>
@@ -2379,7 +2378,7 @@
     <div class="input-group reserve-admin hidden">
       <label for="gemini-key-input">🔑 Clé API Google Gemini</label>
       <input type="password" id="gemini-key-input" placeholder="AIzaSy…" onchange="sauvegarderParametresGlobaux()">
-      <small style="color:var(--text-muted); display: block; margin-top: 6px; font-size:0.75rem;">Liée à ton compte (👤), pas à cet appareil : si toi et ta femme avez chacun votre clé, chacun garde son propre quota de requêtes, sur n'importe quel appareil où vous vous connectez. Une clé par défaut est utilisée tant que ce champ est vide. Obtiens ta propre clé sur <strong>aistudio.google.com</strong>.</small>
+      <small style="color:var(--text-muted); display: block; margin-top: 6px; font-size:0.75rem;">Liée à ton compte, pas à cet appareil. Clé par défaut utilisée si vide — la tienne sur <strong>aistudio.google.com</strong>.</small>
     </div>
 
     <div class="input-group reserve-admin hidden">
@@ -2411,7 +2410,7 @@
     <div class="input-group">
       <label>💧 Objectif d'eau bue</label>
       <p style="margin:0; font-weight:700;" id="affichage-objectif-eau"></p>
-      <p class="note" style="margin:6px 0 0;">Calculé automatiquement à partir de ton poids, ton âge, ton sexe et le sport du jour — rien à régler ici, visible sur l'écran Repas.</p>
+      <p class="note" style="margin:6px 0 0;">Calculé automatiquement, rien à régler ici — visible sur l'écran Repas.</p>
     </div>
 
     <hr class="sep">
@@ -2424,7 +2423,7 @@
         <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" onchange="importerDonnees(event)">
       </div>
       <button class="btn btn-secondaire" id="btn-corriger-unites" style="margin-top:10px; width:100%;" onclick="corrigerUnitesHistorique()">🔍 Corriger les unités g/ml de l'historique</button>
-      <p class="note" style="margin:8px 0 0;">Repasse sur tous les repas déjà enregistrés pour repérer les boissons encore marquées en grammes (eau, jus, soda…) et les convertir en ml.</p>
+      <p class="note" style="margin:8px 0 0;">Convertit en ml les boissons encore marquées en grammes dans ton historique (eau, jus, soda…).</p>
     </div>
 
     <hr class="sep">
@@ -3000,7 +2999,7 @@
       <button class="close-modal hidden" id="compte-fermer-x" onclick="fermerModal('compte-modal')" aria-label="Fermer">&times;</button>
     </div>
 
-    <p class="note" id="compte-intro">Connecte-toi pour utiliser Anqā — un compte par personne, pour que chacun ait ses propres repas, poids et statistiques, même à deux sur le même projet.</p>
+    <p class="note" id="compte-intro">Connecte-toi pour utiliser Anqā — un compte par personne.</p>
 
     <div id="compte-anonyme">
       <div class="input-group">
@@ -3019,7 +3018,7 @@
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" style="flex:1;" onclick="connexionOuCreerCompte()">Se connecter</button>
       </div>
-      <p class="note" style="margin-top:12px;">Première visite ? Indique l'adresse et le mot de passe de ton choix : le compte se crée automatiquement. Les fois suivantes, les mêmes identifiants te reconnectent. Un compte par personne, pour que chacun ait ses propres repas, poids et statistiques.</p>
+      <p class="note" style="margin-top:12px;">Première visite ? Indique l'adresse et le mot de passe de ton choix : le compte se crée automatiquement. Les fois suivantes, les mêmes identifiants te reconnectent.</p>
     </div>
 
     <div id="compte-connecte" class="hidden">
@@ -3043,7 +3042,7 @@
       </div>
 
       <hr class="sep">
-      <p class="note">Vous partagez le même téléphone à tour de rôle plutôt que d'avoir chacun le vôtre ? Déconnecte-toi puis vide les données de l'appareil avant que l'autre personne se connecte, pour ne pas mélanger vos journées (et vos clés Gemini respectives).</p>
+      <p class="note">Téléphone partagé à tour de rôle ? Déconnecte-toi et vide les données de l'appareil avant que l'autre personne se connecte, pour ne pas mélanger vos journées.</p>
 
 
       <button class="btn btn-primary" style="margin-top:16px;" onclick="fermerModal('compte-modal')">Fermer</button>
@@ -3705,6 +3704,7 @@ function renderApp() {
   document.getElementById('date-display').textContent = formatDateDisplay(currentDate);
 
   document.getElementById('objectif-select').value = dernierObjectifConnu(todayStr());
+  majNoteRecomposition();
   document.getElementById('daily-steps').value = day.steps || '';
   afficherResumeMesures();
   
@@ -4131,7 +4131,14 @@ function changerObjectif() {
   const day = getDay(currentDate);
   updateSummary(day);
   buildMasterArrays();
+  majNoteRecomposition();
   if (ecranActif === 'stats') { mettreAJourStats(); mettreAJourStatsNutrition(); }
+}
+// Explication affichée seulement pour l'objectif concerné, pas en permanence
+// quel que soit l'objectif choisi.
+function majNoteRecomposition() {
+  const note = document.getElementById('note-recomposition');
+  if (note) note.classList.toggle('hidden', document.getElementById('objectif-select').value !== 'recomposition');
 }
 
 /* =====================================================================
