@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <!-- Le zoom est neutralisé ici, dans le <head>, avant que quoi que ce soit
        de l'appli ne soit chargé : la meta ci-dessus pour les navigateurs qui
        l'honorent, ces trois écouteurs pour Safari iOS qui l'ignore. Aucune
@@ -833,7 +833,7 @@
        le formulaire. */
     #manual-modal { padding: 0; align-items: stretch; }
     #manual-modal .modal-content {
-      max-width: none; width: 100%; height: 100dvh; max-height: 100dvh;
+      max-width: none; width: 100%; height: var(--vvh, 100dvh); max-height: var(--vvh, 100dvh);
       border-radius: 0; margin: 0;
     }
 
@@ -12491,6 +12491,22 @@ window.addEventListener('keydown', (e) => {
   const sug = document.getElementById('off-suggestions-list');
   if (sug && sug.style.display !== 'none') cacherSuggestionsOFF();
 });
+
+/* Hauteur réelle visible (hors clavier virtuel) sur --vvh, utilisée par
+   #manual-modal (voir CSS) : 100dvh ne se réduit pas forcément quand le
+   clavier s'ouvre (comportement très inégal selon navigateurs/versions
+   iOS), ce qui laissait la fin de la liste de suggestions sous le clavier,
+   hors de portée du scroll tactile (les gestes sur la zone couverte par
+   le clavier vont au clavier, jamais à la page). window.visualViewport
+   reflète la zone réellement visible et se redimensionne de façon fiable. */
+if (window.visualViewport) {
+  const majHauteurVisible = () => {
+    document.documentElement.style.setProperty('--vvh', window.visualViewport.height + 'px');
+  };
+  window.visualViewport.addEventListener('resize', majHauteurVisible);
+  window.visualViewport.addEventListener('scroll', majHauteurVisible);
+  majHauteurVisible();
+}
 
 window.addEventListener('load', () => {
   loadData();
