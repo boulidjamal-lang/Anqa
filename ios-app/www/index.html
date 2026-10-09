@@ -1773,6 +1773,16 @@
       background: none; color: var(--text-muted); font-family: inherit; font-size: 0.72rem; font-weight: 700;
       cursor: pointer;
     }
+    /* --- Détail des ingrédients d'une recette (choix-recette-liste) ---
+       Même principe de repli que les paliers d'un dégressif : la carte
+       garde la bordure de séparation entre recettes, le bouton "Recette"
+       lui-même ne l'a plus (sinon elle apparaîtrait au milieu de la carte,
+       entre le nom et le détail). */
+    .choix-recette-carte { border-bottom: 1px solid var(--verre-brd); }
+    .choix-recette-carte .off-suggestion { border-bottom: 0; padding-bottom: 6px; }
+    .choix-recette-carte .serie-paliers-toggle { padding: 0 14px 8px; color: var(--accent); }
+    .choix-recette-ingredients { padding: 0 14px 10px; display: flex; flex-direction: column; gap: 3px; }
+    .choix-recette-ingredients div { font-size: 0.78rem; color: var(--text-muted); }
     .serie-check {
       width: 30px; height: 30px; border-radius: 9px; border: 1.5px solid transparent;
       background: var(--verre-creux); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
@@ -7803,8 +7813,13 @@ function ouvrirFeuilleRepas(mealId) {
 }
 
 /* Option « Recette » de la feuille-repas (voir depuisFeuille) : liste des
-   recettes enregistrées, un tap en ajoute une portion directement au
-   repas visé par cette feuille (repasFeuille). */
+   recettes enregistrées, un tap sur la carte en ajoute une portion
+   directement au repas visé par cette feuille (repasFeuille) — vitesse
+   inchangée pour l'usage courant. Le détail des ingrédients, lui, reste
+   replié par défaut derrière un bouton séparé (même idée que les paliers
+   d'un dégressif en séance) : on ne le déplie que pour vérifier ce qu'il y
+   a dedans, sans alourdir systématiquement la liste. */
+let recetteDerouleeId = null;
 function renderChoixRecette() {
   const container = document.getElementById('choix-recette-liste');
   const vide = document.getElementById('choix-recette-vide');
@@ -7817,6 +7832,9 @@ function renderChoixRecette() {
   vide.classList.add('hidden');
   recettesPerso.forEach(r => {
     const t = totauxRecettePerso(r);
+    const carte = document.createElement('div');
+    carte.className = 'choix-recette-carte';
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'off-suggestion';
@@ -7832,7 +7850,38 @@ function renderChoixRecette() {
       loguerPortionRecettePerso(r.id, repasFeuille);
       fermerFeuilles();
     });
-    container.appendChild(btn);
+    carte.appendChild(btn);
+
+    const ingredients = r.ingredients || [];
+    const ouvert = recetteDerouleeId === r.id;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'serie-paliers-toggle' + (ouvert ? ' ouvert' : '');
+    toggle.setAttribute('aria-expanded', String(ouvert));
+    toggle.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg> ';
+    toggle.appendChild(document.createTextNode(ingredients.length + ' ingrédient' + (ingredients.length > 1 ? 's' : '')));
+    // stopPropagation : sans ça, le tap remontait au conteneur et risquait
+    // d'être confondu avec un tap sur la carte (qui ajoute la recette).
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      recetteDerouleeId = ouvert ? null : r.id;
+      renderChoixRecette();
+    });
+    carte.appendChild(toggle);
+
+    if (ouvert) {
+      const liste = document.createElement('div');
+      liste.className = 'choix-recette-ingredients';
+      ingredients.forEach(ing => {
+        const ligne = document.createElement('div');
+        const grammes = Math.round((Number(ing.grammes) || 0) / t.portions);
+        ligne.textContent = `${ing.nom} — ${grammes} g`;
+        liste.appendChild(ligne);
+      });
+      carte.appendChild(liste);
+    }
+
+    container.appendChild(carte);
   });
 }
 /* Un seul point de fermeture pour toutes les feuilles (repas, admin
