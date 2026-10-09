@@ -2577,14 +2577,6 @@
     <hr class="sep">
 
     <div style="margin-bottom: 16px;">
-      <label style="display: block; font-weight: 700; font-size: 0.72rem; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Gestion des données</label>
-      <button class="btn btn-secondaire" id="btn-corriger-unites" style="width:100%;" onclick="corrigerUnitesHistorique()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Corriger les unités g/ml de l'historique</button>
-      <p class="note note-explicative" style="margin:8px 0 0;">Convertit en ml les boissons encore marquées en grammes dans ton historique (eau, jus, soda…).</p>
-    </div>
-
-    <hr class="sep">
-
-    <div style="margin-bottom: 16px;">
       <label style="display: block; font-weight: 700; font-size: 0.72rem; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg> Crédits</label>
       <p class="note" style="margin:0;">
         Photos et illustrations des exercices : <a href="https://github.com/bryllim/workout-guide" target="_blank" rel="noopener" style="color:var(--accent);">bryllim/workout-guide</a> (CC BY-SA 4.0),
@@ -2855,6 +2847,10 @@
         <span>Importer des données<span class="sous">Remplace les journées de ce compte</span></span>
       </button>
       <input type="file" id="admin-import-file-input" accept=".json,application/json" class="hidden" onchange="importerDonneesUtilisateurAdmin(event)">
+      <button class="feuille-action" type="button" id="btn-corriger-unites-admin" onclick="corrigerUnitesCompteAdmin()">
+        <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></span>
+        <span id="btn-corriger-unites-admin-texte">Corriger les unités g/ml<span class="sous">Convertit en ml les boissons encore en grammes</span></span>
+      </button>
       <button class="feuille-action" type="button" onclick="ouvrirJournalAdmin(adminUserCourant)">
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg></span>
         <span>Historique<span class="sous">Actions passées sur ce compte</span></span>
@@ -5578,30 +5574,38 @@ function uniteProbableParNom(nom) {
    (ex. une marque). Un geste explicite (bouton en Réglages), pas un passage
    automatique au chargement : c'est une modification de données, l'appli
    ne la déclenche jamais toute seule. */
-async function corrigerUnitesHistorique() {
-  if (!confirm("Analyser tous les repas déjà enregistrés pour repérer les "
+/* Réservé à l'admin (voir feuille-admin-user) : agit sur le compte
+   sélectionné (adminUserCourant) via Supabase directement, comme
+   exporterDonneesUtilisateurAdmin()/importerDonneesUtilisateurAdmin() —
+   jamais sur les données locales de l'admin. */
+async function corrigerUnitesCompteAdmin() {
+  if (!adminUserCourant) return;
+  const compte = adminComptes[adminUserCourant] || {};
+  const nom = compte.email || String(adminUserCourant).slice(0, 8);
+  if (!confirm(`Analyser tous les repas déjà enregistrés pour ${nom} afin de repérer les `
     + "boissons encore marquées en grammes et les convertir en ml ?\n\n"
     + "Seuls les aliments actuellement en g sont revérifiés ; le reste ne change pas.")) return;
 
-  const bouton = document.getElementById('btn-corriger-unites');
-  const texteInitial = bouton ? bouton.textContent : '';
-  if (bouton) { bouton.disabled = true; bouton.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg> Analyse en cours…'; }
+  const bouton = document.getElementById('btn-corriger-unites-admin');
+  const texte = document.getElementById('btn-corriger-unites-admin-texte');
+  const texteInitial = texte ? texte.innerHTML : '';
+  if (bouton) bouton.disabled = true;
+  if (texte) texte.innerHTML = 'Analyse en cours…';
 
   try {
-    const joursModifies = new Set();
+    const { data, error } = await supa.from('journees').select('jour,donnees').eq('utilisateur', adminUserCourant);
+    if (error) throw error;
+
+    const joursModifies = new Map(); // jour -> donnees modifiées
     let corriges = 0;
     let examines = 0;
 
     // 1) Passe locale, instantanée : le nom seul suffit pour la plupart des
     //    boissons évidentes (eau, jus, soda, lait...). Les aliments avec un
     //    code-barres que le nom ne trahit pas sont mis de côté pour la passe 2.
-    //    Elle couvre TOUT l'historique d'un coup, sans retour visuel — le
-    //    compteur "examines" sert à le rappeler dans le message final, pour
-    //    ne pas laisser croire que seule la passe 2 (code-barres) a regardé
-    //    quelque chose.
-    const parCode = new Map();   // code -> [{ ds, mealId, idx }]
-    Object.keys(appData).forEach(ds => {
-      const j = appData[ds];
+    const parCode = new Map();   // code -> [{ jour, mealId, idx }]
+    (data || []).forEach(r => {
+      const j = r.donnees;
       if (!j || !j.meals) return;
       Object.keys(j.meals).forEach(mealId => {
         const liste = j.meals[mealId];
@@ -5612,11 +5616,11 @@ async function corrigerUnitesHistorique() {
           if (uniteProbableParNom(it.name) === 'ml') {
             it.unite = 'ml';
             corriges++;
-            joursModifies.add(ds);
+            joursModifies.set(r.jour, j);
           } else if (it.code) {
             const cle = String(it.code);
             if (!parCode.has(cle)) parCode.set(cle, []);
-            parCode.get(cle).push({ ds, mealId, idx });
+            parCode.get(cle).push({ jour: r.jour, donnees: j, mealId, idx });
           }
         });
       });
@@ -5624,37 +5628,42 @@ async function corrigerUnitesHistorique() {
 
     // 2) Passe réseau : un code-barres à la fois, avec une courte pause —
     //    l'API OpenFoodFacts est gratuite et publique, on ne la bombarde pas.
-    //    Ce n'est qu'un reliquat de la passe 1 (aliments non reconnus par le
-    //    nom mais portant un code-barres), pas le nombre total d'aliments
-    //    traités — d'où la précision "restants" dans le texte du bouton.
     const codes = Array.from(parCode.keys());
     for (let i = 0; i < codes.length; i++) {
       const code = codes[i];
-      if (bouton) bouton.innerHTML = `<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg> Code-barres restants ${i + 1}/${codes.length}…`;
+      if (texte) texte.innerHTML = `Code-barres restants ${i + 1}/${codes.length}…`;
       try {
         const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
         const j = await r.json();
         if (j.status === 1 && uniteProbable(j.product) === 'ml') {
-          parCode.get(code).forEach(({ ds, mealId, idx }) => {
-            appData[ds].meals[mealId][idx].unite = 'ml';
+          parCode.get(code).forEach(({ jour, donnees, mealId, idx }) => {
+            donnees.meals[mealId][idx].unite = 'ml';
             corriges++;
-            joursModifies.add(ds);
+            joursModifies.set(jour, donnees);
           });
         }
       } catch (e) { /* hors ligne ou code introuvable : cet aliment reste en g */ }
       if (i < codes.length - 1) await new Promise(res => setTimeout(res, 200));
     }
 
-    joursModifies.forEach(ds => saveData(ds));
-    invaliderHistorique();
-    buildMasterArrays();
-    updateSummary(getDay(currentDate));
+    if (joursModifies.size) {
+      const maintenant = Date.now();
+      const lignes = Array.from(joursModifies.entries()).map(([jour, donnees]) => ({ utilisateur: adminUserCourant, jour, donnees, maj: maintenant }));
+      for (let i = 0; i < lignes.length; i += 200) {
+        const { error: eUp } = await supa.from('journees').upsert(lignes.slice(i, i + 200), { onConflict: 'utilisateur,jour' });
+        if (eUp) throw eUp;
+      }
+      await consignerAction('unites_corrigees', adminUserCourant, nom, null, corriges + ' unité(s) corrigée(s)');
+    }
 
     alert(corriges > 0
-      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${joursModifies.size} jour(s) (${examines} aliment(s) en grammes examinés au total).`
-      : `Rien à corriger : les ${examines} aliment(s) encore en grammes semblent tous être des aliments solides, pas des boissons.`);
+      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${joursModifies.size} jour(s) (${examines} aliment(s) en grammes examinés au total), pour ${nom}.`
+      : `Rien à corriger pour ${nom} : les ${examines} aliment(s) encore en grammes semblent tous être des aliments solides, pas des boissons.`);
+  } catch (e) {
+    alert('Erreur : ' + e.message);
   } finally {
-    if (bouton) { bouton.disabled = false; bouton.textContent = texteInitial; }
+    if (bouton) bouton.disabled = false;
+    if (texte) texte.innerHTML = texteInitial;
   }
 }
 
@@ -8655,6 +8664,7 @@ const LIBELLES_ACTION = {
   effacer: '\u26a0 Compte effac\u00e9 d\u00e9finitivement',
   rattacher: '\u21c4 Donn\u00e9es rattach\u00e9es',
   donnees_importees: '\u2b06 Donn\u00e9es import\u00e9es (fichier)',
+  unites_corrigees: '\ud83d\udccf Unit\u00e9s g/ml corrig\u00e9es',
   aliment_supprime: '\ud83c\udf7d Aliment supprim\u00e9',
   aliment_modifie: '\u270f Aliment modifi\u00e9'
 };
