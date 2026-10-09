@@ -2578,12 +2578,7 @@
 
     <div style="margin-bottom: 16px;">
       <label style="display: block; font-weight: 700; font-size: 0.72rem; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg> Gestion des données</label>
-      <div style="display: flex; gap: 10px;">
-        <button class="btn-action btn-ai" onclick="exporterDonnees()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m17 8-5-5-5 5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg> Exporter</button>
-        <button class="btn-action btn-manual" onclick="document.getElementById('import-file-input').click()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg> Importer</button>
-        <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" onchange="importerDonnees(event)">
-      </div>
-      <button class="btn btn-secondaire" id="btn-corriger-unites" style="margin-top:10px; width:100%;" onclick="corrigerUnitesHistorique()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Corriger les unités g/ml de l'historique</button>
+      <button class="btn btn-secondaire" id="btn-corriger-unites" style="width:100%;" onclick="corrigerUnitesHistorique()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Corriger les unités g/ml de l'historique</button>
       <p class="note note-explicative" style="margin:8px 0 0;">Convertit en ml les boissons encore marquées en grammes dans ton historique (eau, jus, soda…).</p>
     </div>
 
@@ -2851,6 +2846,15 @@
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg></span>
         <span>Aliments créés<span class="sous">Voir et gérer ses aliments</span></span>
       </button>
+      <button class="feuille-action" type="button" onclick="exporterDonneesUtilisateurAdmin()">
+        <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m17 8-5-5-5 5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg></span>
+        <span>Exporter les données<span class="sous">Télécharge un fichier JSON du compte</span></span>
+      </button>
+      <button class="feuille-action" type="button" onclick="document.getElementById('admin-import-file-input').click()">
+        <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg></span>
+        <span>Importer des données<span class="sous">Remplace les journées de ce compte</span></span>
+      </button>
+      <input type="file" id="admin-import-file-input" accept=".json,application/json" class="hidden" onchange="importerDonneesUtilisateurAdmin(event)">
       <button class="feuille-action" type="button" onclick="ouvrirJournalAdmin(adminUserCourant)">
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg></span>
         <span>Historique<span class="sous">Actions passées sur ce compte</span></span>
@@ -6968,20 +6972,7 @@ function majNoteCompo(s, e) {
     : "Aucune composition corporelle enregistrée sur cette période. Ajoute-en une depuis l'onglet Activité (ou importe ta pesée Withings).";
 }
 
-// --- EXPORT & IMPORT ---
-function exporterDonnees() {
-  const blob = new Blob([JSON.stringify({ appData, userProfile }, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `anqa-${todayStr()}.json`;
-  // Firefox exige que l'ancre soit dans le document, et révoquer l'URL avant que
-  // le téléchargement ait démarré produisait un fichier vide ou aucun fichier.
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-}
+// --- EXPORT & IMPORT (panneau Administration, voir plus bas) ---
 
 /* Un JSON syntaxiquement valide mais de structure inattendue était accepté tel
    quel, persisté, et faisait planter l'app au rechargement — sans aucun retour
@@ -7001,46 +6992,79 @@ function structureValide(d) {
   });
 }
 
-function importerDonnees(event) {
+/* Export/import depuis le panneau Administration : agissent sur le compte
+   sélectionné (adminUserCourant) via Supabase directement, jamais sur les
+   données locales de l'admin. La policy RLS "journees par compte"/"profil
+   par compte" autorise déjà ADMIN_EMAIL à lire et écrire les lignes de
+   n'importe quel compte, donc pas besoin de RPC dédiée ici. */
+async function exporterDonneesUtilisateurAdmin() {
+  if (!adminUserCourant) return;
+  const compte = adminComptes[adminUserCourant] || {};
+  const nom = compte.email || String(adminUserCourant).slice(0, 8);
+  try {
+    const [rj, rp] = await Promise.all([
+      supa.from('journees').select('jour,donnees,maj').eq('utilisateur', adminUserCourant),
+      supa.from('profil').select('donnees').eq('utilisateur', adminUserCourant).maybeSingle()
+    ]);
+    if (rj.error) throw rj.error;
+    if (rp.error) throw rp.error;
+
+    const appDataExport = {};
+    (rj.data || []).forEach(r => { appDataExport[r.jour] = Object.assign({}, r.donnees, { maj: Number(r.maj) || 0 }); });
+
+    const blob = new Blob([JSON.stringify({ appData: appDataExport, userProfile: (rp.data && rp.data.donnees) || {} }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `anqa-${nom.replace(/[^a-z0-9.@-]/gi, '_')}-${todayStr()}.json`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+  } catch (e) {
+    alert('Erreur export : ' + e.message);
+  }
+}
+
+async function importerDonneesUtilisateurAdmin(event) {
   const file = event.target.files[0];
-  // Sans cette remise à zéro, réimporter le même fichier ne déclenchait aucun
-  // événement « change » : l'utilisateur cliquait dans le vide.
   const champ = event.target;
-  if (!file) { champ.value = ''; return; }
+  if (!file || !adminUserCourant) { champ.value = ''; return; }
+  const cible = adminUserCourant;
+  const compte = adminComptes[cible] || {};
+  const nom = compte.email || String(cible).slice(0, 8);
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.appData || !structureValide(data.appData)) {
-        alert("Fichier invalide : ce n'est pas un export Anqā.\nTes données actuelles n'ont pas été touchées.");
+        alert("Fichier invalide : ce n'est pas un export Anqā.");
         return;
       }
-
-      const nbJours = Object.keys(data.appData).length;
-      const nbActuels = Object.keys(appData).length;
+      const jours = Object.keys(data.appData);
       const ok = confirm(
-        `Importer ${nbJours} journée(s) ?\n\n`
-        + `Cela REMPLACE définitivement tes ${nbActuels} journée(s) enregistrées.\n`
-        + `Une sauvegarde de sécurité sera conservée dans le navigateur.`);
+        `Importer ${jours.length} journée(s) dans le compte ${nom} ?\n\n`
+        + `Les journées du fichier REMPLACENT celles déjà enregistrées pour ce compte aux mêmes dates. `
+        + `Les autres jours déjà présents ne sont pas touchés. Action irréversible.`);
       if (!ok) return;
 
-      // Filet de secours : recuperable via la console si l'import deçoit.
-      try { localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(appData)); } catch (err) {}
-
-      appData = data.appData;
-      invaliderHistorique();
-      /* Les journées importées portent l'heure de l'import : sans cela, leur
-         estampille à zéro les faisait écraser par la version du serveur au
-         premier envoi, et l'import n'aurait servi à rien. */
       const maintenant = Date.now();
-      Object.keys(appData).forEach(j => { appData[j].maj = maintenant; });
-      if (data.userProfile) userProfile = Object.assign(userProfile, data.userProfile);
-      appliquerGeminiKeyEffective();
-      majUIWithings();
-      if (saveData()) { renderApp(); alert(`${nbJours} journée(s) importée(s).`); }
+      const lignes = jours.map(j => ({ utilisateur: cible, jour: j, donnees: data.appData[j], maj: maintenant }));
+      for (let i = 0; i < lignes.length; i += 200) {
+        const { error } = await supa.from('journees').upsert(lignes.slice(i, i + 200), { onConflict: 'utilisateur,jour' });
+        if (error) throw error;
+      }
+      if (data.userProfile) {
+        const { error: ep } = await supa.from('profil')
+          .upsert([{ utilisateur: cible, donnees: data.userProfile, maj: maintenant }], { onConflict: 'utilisateur' });
+        if (ep) throw ep;
+      }
+
+      await consignerAction('donnees_importees', cible, nom, null, jours.length + ' journée(s)');
+      alert(`${jours.length} journée(s) importée(s) dans le compte ${nom}.`);
     } catch (err) {
-      alert('Fichier illisible : ' + err.message);
+      alert('Erreur import : ' + err.message);
     } finally {
       champ.value = '';
     }
@@ -8543,6 +8567,7 @@ const LIBELLES_ACTION = {
   supprimer: '\ud83d\uddd1 Compte supprim\u00e9',
   effacer: '\u26a0 Compte effac\u00e9 d\u00e9finitivement',
   rattacher: '\u21c4 Donn\u00e9es rattach\u00e9es',
+  donnees_importees: '\u2b06 Donn\u00e9es import\u00e9es (fichier)',
   aliment_supprime: '\ud83c\udf7d Aliment supprim\u00e9',
   aliment_modifie: '\u270f Aliment modifi\u00e9'
 };
