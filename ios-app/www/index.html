@@ -1731,7 +1731,6 @@
       font-size: 0.68rem; font-weight: 800;
     }
     .session-exo-nom { font-weight: 800; font-size: 0.92rem; }
-    .session-exo-derniere { font-size: 0.7rem; color: var(--text-muted); }
 
     /* Dans un superset, les exercices restent à l'intérieur d'un même cadre
        (celui du bloc superset plus bas) : leur donner aussi un fond de carte
@@ -12285,11 +12284,6 @@ function renderSessionModal() {
 }
 function renderSessionExerciceBlocHTML(exo, ei) {
   const exerciceComplet = trouverExercice(exo.exerciceId);
-  const derniere = dernierePerfExercice(exo.exerciceId);
-  const infoDerniere = derniere
-    ? 'Dernière fois (' + formatDateDisplay(derniere.date) + ') : ' +
-      derniere.series.filter(x => x.fait).map(x => (x.poids ?? '—') + '×' + (x.reps ?? '—')).join(', ')
-    : 'Première fois sur cet exercice.';
   const lignesSeries = exo.series.map((set, si) => {
     const clefRepos = ei + '_' + si;
     const debutRepos = reposActifs[clefRepos];
@@ -12330,7 +12324,6 @@ function renderSessionExerciceBlocHTML(exo, ei) {
             <button class="btn-delete" onclick="retirerExerciceSession(${ei})" aria-label="Retirer l'exercice">&times;</button>
           </div>
         </div>
-        <div class="session-exo-derniere">${escapeHtml(infoDerniere)}</div>
       </div>
     </div>
     <div class="serie-table">
