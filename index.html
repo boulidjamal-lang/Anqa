@@ -221,11 +221,12 @@
        de sélecteur d'attribut nécessaire ; 4 = compact). Resserre
        progressivement tout l'écran (cartes, titres de section, boutons,
        coins) — les valeurs par défaut (confort) ci-dessus ne bougent pas,
-       c'est l'affichage déjà en place. Seul le dernier cran (4, le plus
-       dense) va plus loin et cache en plus les textes explicatifs non
-       essentiels (.note-explicative) et le détail des macros par aliment —
-       le reste (erreurs, avertissements, contenus dynamiques, mentions
-       légales) reste toujours visible, à tous les crans. */
+       c'est l'affichage déjà en place. À partir de "Dense" (3) et jusqu'à
+       "Compact" (4), cache en plus les textes explicatifs non essentiels
+       (.note-explicative) ; "Compact" seul va encore plus loin en cachant
+       aussi le détail des macros par aliment — le reste (erreurs,
+       avertissements, contenus dynamiques, mentions légales) reste
+       toujours visible, à tous les crans. */
     :root[data-densite="1"] {
       --densite-pad: 16px; --densite-gap: 13px; --densite-nom: 0.89rem; --rayon: 17px;
       --densite-summary-pad: 21px 18px; --densite-titre-marge: 17px 0 7px;
@@ -265,6 +266,7 @@
       --densite-ecran-marge: 5px;
       --densite-jauge-marge: 6px;
     }
+    :root[data-densite="3"] .note-explicative,
     :root[data-densite="4"] .note-explicative { display: none; }
 
     /* Le flou est couteux et penible pour certains utilisateurs : on le coupe
