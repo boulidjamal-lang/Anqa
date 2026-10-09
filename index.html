@@ -692,7 +692,17 @@
        principe de repli que .serie-paliers-toggle ailleurs, juste réaligné
        sur le bord gauche (pas d'indentation de pastille de série ici). */
     .food-item .serie-paliers-toggle { padding: 0; }
-    .food-item .choix-recette-ingredients { padding: 2px 0 0; }
+    .food-item .choix-recette-ingredients { padding: 2px 0 0; gap: 6px; }
+    /* Chaque ingrédient d'un aliment-recette reste éditable (poids
+       seulement) : c'est leur somme qui détermine le poids total de
+       l'aliment, jamais l'inverse (voir modifierPoidsIngredientAliment). */
+    .ingredient-aliment-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .ingredient-aliment-ligne input {
+      width: 52px; min-height: 28px; padding: 2px; text-align: center;
+      border-radius: 8px; border: 1px solid transparent; background: var(--verre-creux);
+      color: var(--text); font-family: inherit; font-size: 0.8rem; font-weight: 700; outline: none;
+    }
+    .ingredient-aliment-ligne input:focus { border-color: var(--primary); }
     .food-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .food-name { font-weight: 600; font-size: var(--densite-nom); overflow-wrap: anywhere; }
     .food-detail { font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
@@ -4175,17 +4185,21 @@ function renderMeals(day) {
           <button type="button" class="serie-paliers-toggle ${ouvertIngr ? 'ouvert' : ''}" aria-expanded="${ouvertIngr}" onclick="basculerIngredientsAliment('${mealId}',${i})">
             <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             ${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}
-          </button>${ouvertIngr ? `<div class="choix-recette-ingredients">${ingredients.map(ing => `<div>${escapeHtml(String(ing))}</div>`).join('')}</div>` : ''}` : '';
-      // Le poids d'un aliment venu d'une recette n'est pas modifiable : le
-      // détail des ingrédients est un instantané figé (voir
-      // loguerPortionRecettePerso), qui ne peut pas se mettre à l'échelle en
-      // même temps que le poids total — les deux se contrediraient aussitôt.
+          </button>${ouvertIngr ? `<div class="choix-recette-ingredients">${ingredients.map((ing, j) => `
+            <div class="ingredient-aliment-ligne">
+              <span>${escapeHtml(ing.nom)}</span>
+              <span><input type="number" inputmode="decimal" step="1" value="${ing.grammes ?? ''}" onchange="modifierPoidsIngredientAliment('${mealId}',${i},${j},this.value)"> g</span>
+            </div>`).join('')}</div>` : ''}` : '';
+      // Le poids total d'un aliment venu d'une recette ne se modifie pas
+      // directement : il découle de la somme de ses ingrédients (voir
+      // modifierPoidsIngredientAliment, dans le détail replié ci-dessus) —
+      // ce sont eux qu'on ajuste, jamais le total en bloc.
       const estRecette = ingredients.length > 0;
       return `
       <li class="food-item">
         <div class="food-item-ligne">
           <div class="food-info${estRecette ? ' food-info--fixe' : ''}"${estRecette ? '' : ' onclick="ouvrirPoidsAliment(this)"'}
-               ${estRecette ? 'title="Poids fixé par la recette — modifiable uniquement en la resupprimant/rajoutant"' : ''}
+               ${estRecette ? 'title="Poids déterminé par les ingrédients ci-dessous — déplie-les pour ajuster"' : ''}
                data-meal="${mealId}" data-index="${i}" data-grams="${Number(it.grams) || 0}"
                data-nom="${escapeHtml(it.name)}" data-kcal="${Math.round(it.kcal)}"
                data-p="${Math.round(it.p)}" data-c="${Math.round(it.c)}" data-f="${Math.round(it.f)}">
@@ -5255,18 +5269,56 @@ function loguerPortionRecettePerso(id, mealIdCible) {
   const r = recettesPerso.find(x => x.id === id);
   if (!r) return;
   const t = totauxRecettePerso(r);
-  const item = {
-    name: r.nom, grams: Math.round(t.grammesParPortion) || 100, unite: 'g',
-    kcal: t.parPortionKcal, p: t.parPortionP, c: t.parPortionC, f: t.parPortionF
-  };
-  // Instantané des ingrédients au moment de l'ajout (jamais une référence
-  // vers la recette) : si elle est modifiée ou supprimée plus tard, ce qui
-  // a déjà été mangé ce jour-là ne doit pas changer rétroactivement.
+  const item = { name: r.nom, unite: 'g' };
+  // Instantané STRUCTURÉ des ingrédients au moment de l'ajout (jamais une
+  // référence vers la recette : si elle est modifiée ou supprimée plus
+  // tard, ce qui a déjà été mangé ce jour-là ne doit pas changer
+  // rétroactivement) — les valeurs /100g sont gardées pour pouvoir
+  // recalculer kcal/macros quand une quantité est ajustée après coup (voir
+  // modifierPoidsIngredientAliment). Le poids total de l'aliment n'est lui
+  // jamais modifiable directement : il découle de la somme des ingrédients.
   if (r.ingredients && r.ingredients.length) {
-    item.ingredients = r.ingredients.map(ing =>
-      `${ing.nom} — ${Math.round((Number(ing.grammes) || 0) / t.portions)} g`);
+    item.ingredients = r.ingredients.map(ing => ({
+      nom: ing.nom,
+      grammes: Math.round((Number(ing.grammes) || 0) / t.portions),
+      kcal100: Number(ing.kcal100) || 0, p100: Number(ing.p100) || 0,
+      c100: Number(ing.c100) || 0, f100: Number(ing.f100) || 0
+    }));
+    recalculerItemDepuisIngredients(item);
+  } else {
+    item.grams = Math.round(t.grammesParPortion) || 100;
+    item.kcal = t.parPortionKcal; item.p = t.parPortionP; item.c = t.parPortionC; item.f = t.parPortionF;
   }
   addItemToMeal(mealIdCible || activeMealId || repasDuMoment(), item);
+}
+
+// Recalcule le poids total et les macros d'un aliment à partir de ses
+// ingrédients (même formule que totauxRecettePerso, appliquée ici sur les
+// grammages éventuellement modifiés par la personne après coup).
+function recalculerItemDepuisIngredients(item) {
+  const ingredients = item.ingredients || [];
+  item.grams = ingredients.reduce((s, ing) => s + (Number(ing.grammes) || 0), 0);
+  item.kcal = ingredients.reduce((s, ing) => s + (Number(ing.grammes) || 0) / 100 * (Number(ing.kcal100) || 0), 0);
+  item.p = ingredients.reduce((s, ing) => s + (Number(ing.grammes) || 0) / 100 * (Number(ing.p100) || 0), 0);
+  item.c = ingredients.reduce((s, ing) => s + (Number(ing.grammes) || 0) / 100 * (Number(ing.c100) || 0), 0);
+  item.f = ingredients.reduce((s, ing) => s + (Number(ing.grammes) || 0) / 100 * (Number(ing.f100) || 0), 0);
+}
+
+// Changer le poids d'UN ingrédient d'un aliment déjà loggé — le seul moyen
+// d'ajuster la quantité d'une recette une fois ajoutée (voir
+// renderMeals/food-info--fixe) : le poids total et les macros se
+// recalculent automatiquement à partir de la somme des ingrédients.
+function modifierPoidsIngredientAliment(mealId, i, j, valeur) {
+  const day = getDay(currentDate);
+  const item = day.meals[mealId] && day.meals[mealId][i];
+  const ing = item && item.ingredients && item.ingredients[j];
+  if (!ing) return;
+  ing.grammes = Math.max(0, Number(valeur) || 0);
+  recalculerItemDepuisIngredients(item);
+  saveData(currentDate);
+  invaliderHistorique();
+  renderMeals(day);
+  updateSummary(day);
 }
 
 function ouvrirCreationRecettePerso(idExistant) {
