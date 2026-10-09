@@ -580,7 +580,7 @@
       padding: 2px 6px; margin-top: 1px; font-family: inherit;
     }
     .date-centre { display: flex; flex-direction: column; align-items: center; }
-    body.sur-stats .date-nav { display: none; }
+    body.sur-stats .date-nav, body.sur-reglages .date-nav, body.sur-admin .date-nav { display: none; }
 
     /* --- ECRANS --- */
     .ecran { display: none; animation: ecranIn 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -7093,6 +7093,8 @@ function allerA(nom) {
   if (fabOuvert) fermerFab();
   document.body.classList.toggle('sur-stats', nom === 'stats');
   document.body.classList.toggle('sur-seance', nom === 'seance');
+  document.body.classList.toggle('sur-reglages', nom === 'reglages');
+  document.body.classList.toggle('sur-admin', nom === 'admin');
   window.scrollTo({ top: 0, behavior: 'auto' });
   reduireAppBar(false);
   if (nom === 'stats') { prepareStats(); }
