@@ -1748,6 +1748,31 @@
       border-radius: 10px; font-size: 0.85rem; font-family: inherit; font-weight: 700; outline: none;
     }
     .serie-table input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
+    /* --- Paliers d'une série en dégressif : repliés par défaut (voir
+       palierOuvert), pour ne pas noyer la liste de séries sous des lignes
+       qu'on ne veut pas toujours voir. --- */
+    .serie-paliers-toggle {
+      display: flex; align-items: center; gap: 5px; width: 100%;
+      background: none; border: 0; color: var(--accent);
+      font-family: inherit; font-size: 0.72rem; font-weight: 700;
+      padding: 3px 3px 2px 39px; cursor: pointer;
+    }
+    .serie-paliers-toggle svg { width: 11px; height: 11px; flex-shrink: 0; transition: transform 0.2s ease; }
+    .serie-paliers-toggle.ouvert svg { transform: rotate(90deg); }
+    .serie-paliers { display: flex; flex-direction: column; gap: 4px; padding: 2px 3px 6px 39px; }
+    .serie-palier-ligne { display: grid; grid-template-columns: 1fr 1fr 28px; align-items: center; gap: 6px; }
+    .serie-palier-ligne input { min-height: 30px; font-size: 0.8rem; }
+    .serie-palier-ligne button {
+      border: 0; background: none; color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; opacity: 0.7;
+    }
+    .serie-palier-ligne button:hover { opacity: 1; color: var(--danger); }
+    .serie-palier-ligne button svg { width: 15px; height: 15px; }
+    .btn-ajouter-palier {
+      margin-top: 2px; padding: 6px; border-radius: 8px; border: 1px dashed var(--verre-brd);
+      background: none; color: var(--text-muted); font-family: inherit; font-size: 0.72rem; font-weight: 700;
+      cursor: pointer;
+    }
     .serie-check {
       width: 30px; height: 30px; border-radius: 9px; border: 1.5px solid transparent;
       background: var(--verre-creux); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
@@ -11022,6 +11047,11 @@ let sessionChronoInterval = null;
 // série ou un exercice est supprimé, pour que les minuteurs en cours
 // restent attachés à la bonne ligne.
 let reposActifs = {};
+// Repli/dépli des paliers d'une série en dégressif (voir
+// renderSessionExerciceBlocHTML) : repliés par défaut pour ne pas noyer la
+// liste de séries sous des lignes qu'on ne veut pas toujours voir — un pur
+// état d'affichage, jamais sauvegardé, indexé "ei_si" comme reposActifs.
+let palierOuvert = {};
 // Séance libre venant d'être terminée, en attente de la proposition « en
 // faire un programme » une fois le bilan local (voir terminerSeance) fermé —
 // null sinon.
@@ -12438,6 +12468,7 @@ function demarrerSeance(programmeId) {
     exercices: construireExercicesSession(programme)
   };
   reposActifs = {};
+  palierOuvert = {};
   sauvegarderSessionActive();
   renderSeance();
   ouvrirSessionModal();
@@ -12447,6 +12478,7 @@ function demarrerSeanceLibre() {
       !confirm('Une séance (' + (musculationSessionActive.programmeNom || 'séance libre') + ') est déjà en cours. L’abandonner pour démarrer celle-ci ?')) return;
   musculationSessionActive = { programmeId: null, programmeNom: null, debut: Date.now(), notes: '', exercices: [] };
   reposActifs = {};
+  palierOuvert = {};
   sauvegarderSessionActive();
   renderSeance();
   ouvrirSessionModal();
@@ -12553,7 +12585,7 @@ function renderSessionExerciceBlocHTML(exo, ei) {
         <input type="number" inputmode="numeric" step="1" value="${set.reps ?? ''}" placeholder="—" onchange="modifierSerieSession(${ei},${si},'reps',this.value)">
         <button type="button" class="serie-check ${set.fait ? 'faite' : ''}" onclick="basculerSerieSession(${ei},${si})" aria-label="Marquer la série comme faite"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg></button>
       </div>
-    </div>${barreRepos}`;
+    </div>${barreRepos}${blocPaliersHTML(ei, si, set)}`;
   }).join('');
   return `<div class="session-exo-bloc">
     <div class="session-exo-entete">
@@ -12577,6 +12609,62 @@ function renderSessionExerciceBlocHTML(exo, ei) {
     </div>
     <button type="button" class="btn-ajouter-serie" onclick="ajouterSerieSession(${ei})">Ajouter une série</button>
   </div>`;
+}
+/* Paliers d'une série en dégressif (poids/reps de chaque baisse de charge
+   après le palier le plus lourd, saisi normalement dans la ligne de série
+   elle-même) : repliés par défaut sous un simple lien "N palier(s)", pour
+   ne pas transformer chaque dégressif en trois-quatre lignes systématiques
+   dans la liste — seulement pour qui veut vraiment les détailler. */
+function blocPaliersHTML(ei, si, set) {
+  if (set.technique !== 'degressif') return '';
+  const paliers = set.paliers || [];
+  const ouvert = !!palierOuvert[ei + '_' + si];
+  const toggle = `<button type="button" class="serie-paliers-toggle ${ouvert ? 'ouvert' : ''}" onclick="basculerPaliersSession(${ei},${si})" aria-expanded="${ouvert}">
+    <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+    ${paliers.length ? paliers.length + ' palier' + (paliers.length > 1 ? 's' : '') : 'Ajouter les paliers'}
+  </button>`;
+  if (!ouvert) return toggle;
+  const lignesPaliers = paliers.map((p, pi) => `
+    <div class="serie-palier-ligne">
+      <input type="number" inputmode="decimal" step="0.5" value="${p.poids ?? ''}" placeholder="Poids" onchange="modifierPalierSession(${ei},${si},${pi},'poids',this.value)">
+      <input type="number" inputmode="numeric" step="1" value="${p.reps ?? ''}" placeholder="Reps" onchange="modifierPalierSession(${ei},${si},${pi},'reps',this.value)">
+      <button type="button" onclick="retirerPalierSession(${ei},${si},${pi})" aria-label="Supprimer ce palier"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></button>
+    </div>`).join('');
+  return `${toggle}<div class="serie-paliers">${lignesPaliers}
+    <button type="button" class="btn-ajouter-palier" onclick="ajouterPalierSession(${ei},${si})">+ Ajouter un palier</button>
+  </div>`;
+}
+function basculerPaliersSession(ei, si) {
+  const clef = ei + '_' + si;
+  palierOuvert[clef] = !palierOuvert[clef];
+  renderSessionModal();
+}
+function ajouterPalierSession(ei, si) {
+  const set = musculationSessionActive.exercices[ei] && musculationSessionActive.exercices[ei].series[si];
+  if (!set) return;
+  if (!set.paliers) set.paliers = [];
+  const dernier = set.paliers[set.paliers.length - 1];
+  // Poids pré-rempli depuis le dernier palier (ou depuis la série
+  // principale pour le tout premier) : il ne reste qu'à l'ajuster à la
+  // baisse plutôt que de repartir d'un champ vide à chaque palier.
+  set.paliers.push({ poids: dernier ? dernier.poids : set.poids, reps: null });
+  palierOuvert[ei + '_' + si] = true;
+  sauvegarderSessionActive();
+  renderSessionModal();
+}
+function modifierPalierSession(ei, si, pi, champ, valeur) {
+  const set = musculationSessionActive.exercices[ei] && musculationSessionActive.exercices[ei].series[si];
+  const palier = set && set.paliers && set.paliers[pi];
+  if (!palier) return;
+  palier[champ] = valeur === '' ? null : Number(valeur);
+  sauvegarderSessionActive();
+}
+function retirerPalierSession(ei, si, pi) {
+  const set = musculationSessionActive.exercices[ei] && musculationSessionActive.exercices[ei].series[si];
+  if (!set || !set.paliers) return;
+  set.paliers.splice(pi, 1);
+  sauvegarderSessionActive();
+  renderSessionModal();
 }
 /* Le "type" d'une série (dégressif, pyramidal, échec) — comme Warm up/Drop
    set/Failure chez Strong — s'applique à CETTE série précise, pas à tout
@@ -12778,28 +12866,38 @@ function arreterRepos(ei, si) {
   delete reposActifs[ei + '_' + si];
   renderSessionModal();
 }
-/* Les minuteurs sont indexés par position (ei_si), pas par un id stable —
-   quand une série ou un exercice est supprimé, les positions après celle
-   retirée glissent d'un cran : sans ce réalignement, un minuteur en cours
-   se retrouverait accroché à la mauvaise ligne après suppression. */
-function reindexerReposApresSuppressionSerie(ei, siSupprime) {
+/* Les minuteurs de repos ET le dépli des paliers sont tous deux indexés par
+   position (ei_si), pas par un id stable — quand une série ou un exercice
+   est supprimé, les positions après celle retirée glissent d'un cran : sans
+   ce réalignement, un minuteur ou un dépli en cours se retrouverait
+   accroché à la mauvaise ligne après suppression. Même logique pour les
+   deux, factorisée ici plutôt que dupliquée. */
+function reindexerObjetParPositionApresSuppressionSerie(objet, ei, siSupprime) {
   const suivant = {};
-  Object.keys(reposActifs).forEach(clef => {
+  Object.keys(objet).forEach(clef => {
     const [e, s] = clef.split('_').map(Number);
-    if (e !== ei) { suivant[clef] = reposActifs[clef]; return; }
+    if (e !== ei) { suivant[clef] = objet[clef]; return; }
     if (s === siSupprime) return;
-    suivant[e + '_' + (s > siSupprime ? s - 1 : s)] = reposActifs[clef];
+    suivant[e + '_' + (s > siSupprime ? s - 1 : s)] = objet[clef];
   });
-  reposActifs = suivant;
+  return suivant;
 }
-function reindexerReposApresSuppressionExercice(eiSupprime) {
+function reindexerObjetParPositionApresSuppressionExercice(objet, eiSupprime) {
   const suivant = {};
-  Object.keys(reposActifs).forEach(clef => {
+  Object.keys(objet).forEach(clef => {
     const [e, s] = clef.split('_').map(Number);
     if (e === eiSupprime) return;
-    suivant[(e > eiSupprime ? e - 1 : e) + '_' + s] = reposActifs[clef];
+    suivant[(e > eiSupprime ? e - 1 : e) + '_' + s] = objet[clef];
   });
-  reposActifs = suivant;
+  return suivant;
+}
+function reindexerReposApresSuppressionSerie(ei, siSupprime) {
+  reposActifs = reindexerObjetParPositionApresSuppressionSerie(reposActifs, ei, siSupprime);
+  palierOuvert = reindexerObjetParPositionApresSuppressionSerie(palierOuvert, ei, siSupprime);
+}
+function reindexerReposApresSuppressionExercice(eiSupprime) {
+  reposActifs = reindexerObjetParPositionApresSuppressionExercice(reposActifs, eiSupprime);
+  palierOuvert = reindexerObjetParPositionApresSuppressionExercice(palierOuvert, eiSupprime);
 }
 // Au-delà de ce délai, la barre disparaît d'elle-même même si la série
 // suivante n'a pas encore été cochée — pas de minuterie infinie oubliée en
@@ -12889,6 +12987,7 @@ function terminerSeance() {
   const etaitLibre = !s.programmeId && entree.exercices.length > 0;
   musculationSessionActive = null;
   reposActifs = {};
+  palierOuvert = {};
   sauvegarderSessionActive();
   renderSeance();
   renderApp();
@@ -13029,6 +13128,7 @@ function abandonnerSeance() {
   if (!confirm('Abandonner cette séance ? Rien ne sera enregistré dans ton historique.')) return;
   musculationSessionActive = null;
   reposActifs = {};
+  palierOuvert = {};
   sauvegarderSessionActive();
   renderSeance();
 }
