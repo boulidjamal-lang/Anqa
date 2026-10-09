@@ -1808,6 +1808,21 @@
       document.documentElement.setAttribute('data-densite', d);
       var mtc = document.getElementById('meta-theme-color');
       if (mtc) mtc.setAttribute('content', t === 'dark' ? '#06070a' : '#eaeef5');
+      // Pareil pour le manifest (ses propres background_color/theme_color,
+      // lus par le système au lancement d'une icône ajoutée à l'écran
+      // d'accueil) : le remettre à jour ici aussi, pas seulement au bascule
+      // explicite dans les réglages (voir majManifestTheme, même logique,
+      // dupliquée en plus léger puisque ce script-ci tourne avant que le
+      // reste de l'appli ne soit défini).
+      var lienManifest = document.querySelector('link[rel="manifest"]');
+      var mManifest = lienManifest && /^data:application\/manifest\+json;base64,(.+)$/.exec(lienManifest.getAttribute('href') || '');
+      if (mManifest) {
+        var manifeste = JSON.parse(decodeURIComponent(escape(atob(mManifest[1]))));
+        var couleur = t === 'dark' ? '#06070a' : '#eaeef5';
+        manifeste.background_color = couleur;
+        manifeste.theme_color = couleur;
+        lienManifest.setAttribute('href', 'data:application/manifest+json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(manifeste)))));
+      }
     } catch (e) {}
 
     // Couleurs personnalisées par l'admin (voir appliquerCouleursApp plus
@@ -7114,6 +7129,26 @@ function forcerRepeintureVerre() {
   setTimeout(repeindre, 80);
 }
 
+// Le manifest (lien <link rel="manifest">, encodé en data URI base64) a ses
+// propres background_color/theme_color, lus par le système au lancement
+// d'une icône ajoutée à l'écran d'accueil — indépendamment du <meta
+// theme-color> ci-dessous, et donc tout aussi figés sur le clair tant
+// qu'on ne les met pas à jour nous-mêmes à chaque changement de thème.
+function texteVersBase64(texte) { return btoa(unescape(encodeURIComponent(texte))); }
+function base64VersTexte(b64) { return decodeURIComponent(escape(atob(b64))); }
+function majManifestTheme(t) {
+  const lien = document.querySelector('link[rel="manifest"]');
+  if (!lien) return;
+  const m = /^data:application\/manifest\+json;base64,(.+)$/.exec(lien.getAttribute('href') || '');
+  if (!m) return;
+  try {
+    const manifeste = JSON.parse(base64VersTexte(m[1]));
+    const couleur = t === 'dark' ? '#06070a' : '#eaeef5';
+    manifeste.background_color = couleur;
+    manifeste.theme_color = couleur;
+    lien.setAttribute('href', 'data:application/manifest+json;base64,' + texteVersBase64(JSON.stringify(manifeste)));
+  } catch (e) {}
+}
 function appliquerTheme(t) {
   t = t === 'dark' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
@@ -7125,6 +7160,7 @@ function appliquerTheme(t) {
   // explicite, pour ne plus jamais désynchroniser barre et contenu.
   const mtc = document.getElementById('meta-theme-color');
   if (mtc) mtc.setAttribute('content', t === 'dark' ? '#06070a' : '#eaeef5');
+  majManifestTheme(t);
   majSegment('segment-theme', ['light', 'dark'], t);
   // Les graphiques sont dessines en pixels : leurs couleurs ne suivent pas le
   // theme toutes seules, il faut les redessiner.
