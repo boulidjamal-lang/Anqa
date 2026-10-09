@@ -4007,7 +4007,7 @@ function renderWorkoutsList(day) {
       </div>
       <div class="input-group" style="flex: 1; margin-bottom: 0;">
         <label style="font-size: 0.65rem;">Durée (min)</label>
-        <input type="number" value="${w.time || ''}" placeholder="60" step="5" onchange="modifierSport(${index}, 'time', this.value)">
+        <input type="number" value="${Number(w.time) || ''}" placeholder="60" step="5" onchange="modifierSport(${index}, 'time', this.value)">
       </div>
       <button class="btn-delete" onclick="supprimerSport(${index})" aria-label="Supprimer cette séance">&times;</button>
     </div>`;
@@ -4028,7 +4028,7 @@ function renderWorkoutsList(day) {
       </div>
       <div class="input-group" style="flex: 1; margin-bottom: 0;">
         <label style="font-size: 0.65rem;">Durée (min)</label>
-        <input type="number" value="${w.time || ''}" placeholder="60" step="5" onchange="modifierSport(${index}, 'time', this.value)">
+        <input type="number" value="${Number(w.time) || ''}" placeholder="60" step="5" onchange="modifierSport(${index}, 'time', this.value)">
       </div>
       <button class="btn-delete" onclick="supprimerSport(${index})" aria-label="Supprimer cette séance">&times;</button>
     </div>`;
@@ -4139,7 +4139,7 @@ function renderMeals(day) {
     const rows = items.length ? items.map((it, i) => `
       <li class="food-item">
         <div class="food-info" onclick="ouvrirPoidsAliment(this)"
-             data-meal="${mealId}" data-index="${i}" data-grams="${it.grams}"
+             data-meal="${mealId}" data-index="${i}" data-grams="${Number(it.grams) || 0}"
              data-nom="${escapeHtml(it.name)}" data-kcal="${Math.round(it.kcal)}"
              data-p="${Math.round(it.p)}" data-c="${Math.round(it.c)}" data-f="${Math.round(it.f)}">
           <span class="food-name">${escapeHtml(it.name)}</span>
@@ -6992,6 +6992,81 @@ function structureValide(d) {
   });
 }
 
+/* Un fichier qui passe structureValide() a la bonne FORME mais son contenu
+   reste non fiable : un aliment ou une séance peut porter n'importe quel
+   type dans ses champs. Plusieurs endroits de l'app injectent ces champs
+   directement dans des attributs HTML (data-grams, value="…") en ne les
+   passant au mieux que dans Math.round() — une chaîne qui casse l'attribut
+   (ex. grams: '1" onmouseover="…') y échappait. On reconstruit donc chaque
+   aliment/séance importé à partir de champs bornés et typés plutôt que de
+   copier tel quel ce que contient le fichier, et on plafonne les volumes
+   (jours, aliments par repas, séances par jour) pour qu'un fichier énorme
+   ou absurde ne parte pas tel quel vers la base. */
+const IMPORT_MAX_OCTETS = 5 * 1024 * 1024; // un export normal pèse quelques centaines de ko
+const IMPORT_MAX_JOURS = 3700; // ~10 ans : au-delà ce n'est plus un export plausible
+const IMPORT_MAX_ALIMENTS_PAR_REPAS = 200;
+const IMPORT_MAX_WORKOUTS_PAR_JOUR = 50;
+
+function nombreImporte(v, min, max, defaut) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return defaut;
+  return Math.min(max, Math.max(min, n));
+}
+function texteImporte(v, max) {
+  if (v === undefined || v === null) return undefined;
+  return String(v).slice(0, max);
+}
+
+function assainirJourneeImport(brut) {
+  const j = Object.assign({}, brut);
+  if (j.meals && typeof j.meals === 'object' && !Array.isArray(j.meals)) {
+    const meals = {};
+    Object.keys(j.meals).forEach(m => {
+      const items = Array.isArray(j.meals[m]) ? j.meals[m] : [];
+      meals[m] = items.slice(0, IMPORT_MAX_ALIMENTS_PAR_REPAS).map(it => {
+        const propre = {
+          name: texteImporte(it && it.name, 200) || 'Aliment',
+          grams: nombreImporte(it && it.grams, 0, 100000, 0),
+          kcal: nombreImporte(it && it.kcal, 0, 100000, 0),
+          p: nombreImporte(it && it.p, 0, 10000, 0),
+          c: nombreImporte(it && it.c, 0, 10000, 0),
+          f: nombreImporte(it && it.f, 0, 10000, 0),
+          unite: (it && it.unite === 'ml') ? 'ml' : 'g'
+        };
+        if (it && it.code !== undefined) propre.code = texteImporte(it.code, 64);
+        return propre;
+      });
+    });
+    j.meals = meals;
+  }
+  if (Array.isArray(j.workouts)) {
+    j.workouts = j.workouts.slice(0, IMPORT_MAX_WORKOUTS_PAR_JOUR).map(w => {
+      const propre = {
+        type: texteImporte(w && w.type, 60) || '',
+        time: nombreImporte(w && w.time, 0, 1440, 0)
+      };
+      if (w && w.source !== undefined) propre.source = texteImporte(w.source, 30);
+      if (w && w.nom !== undefined) propre.nom = texteImporte(w.nom, 200);
+      if (w && w.seriesFaites !== undefined) propre.seriesFaites = nombreImporte(w.seriesFaites, 0, 10000, 0);
+      return propre;
+    });
+  }
+  return j;
+}
+
+/* geminiKey (clé API personnelle) et withings (jetons OAuth access/refresh)
+   sont des identifiants, pas des données de suivi : ils n'ont rien à faire
+   dans un fichier JSON qui peut finir dans un dossier Téléchargements, et un
+   fichier importé ne doit surtout pas pouvoir en planter de nouveaux dans un
+   compte. La clé Gemini d'un compte se gère exclusivement via le champ dédié
+   de sa fiche admin ; Withings, via sa propre connexion OAuth. */
+function sansIdentifiants(profil) {
+  const p = Object.assign({}, profil || {});
+  delete p.geminiKey;
+  delete p.withings;
+  return p;
+}
+
 /* Export/import depuis le panneau Administration : agissent sur le compte
    sélectionné (adminUserCourant) via Supabase directement, jamais sur les
    données locales de l'admin. La policy RLS "journees par compte"/"profil
@@ -7012,7 +7087,7 @@ async function exporterDonneesUtilisateurAdmin() {
     const appDataExport = {};
     (rj.data || []).forEach(r => { appDataExport[r.jour] = Object.assign({}, r.donnees, { maj: Number(r.maj) || 0 }); });
 
-    const blob = new Blob([JSON.stringify({ appData: appDataExport, userProfile: (rp.data && rp.data.donnees) || {} }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ appData: appDataExport, userProfile: sansIdentifiants(rp.data && rp.data.donnees) }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -7030,6 +7105,11 @@ async function importerDonneesUtilisateurAdmin(event) {
   const file = event.target.files[0];
   const champ = event.target;
   if (!file || !adminUserCourant) { champ.value = ''; return; }
+  if (file.size > IMPORT_MAX_OCTETS) {
+    alert(`Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo, max ${IMPORT_MAX_OCTETS / 1024 / 1024} Mo) — ce n'est pas un export Anqā plausible.`);
+    champ.value = '';
+    return;
+  }
   const cible = adminUserCourant;
   const compte = adminComptes[cible] || {};
   const nom = compte.email || String(cible).slice(0, 8);
@@ -7043,6 +7123,10 @@ async function importerDonneesUtilisateurAdmin(event) {
         return;
       }
       const jours = Object.keys(data.appData);
+      if (jours.length > IMPORT_MAX_JOURS) {
+        alert(`Fichier invalide : ${jours.length} journées, au-delà de ce qu'un export plausible contient (max ${IMPORT_MAX_JOURS}).`);
+        return;
+      }
       const ok = confirm(
         `Importer ${jours.length} journée(s) dans le compte ${nom} ?\n\n`
         + `Les journées du fichier REMPLACENT celles déjà enregistrées pour ce compte aux mêmes dates. `
@@ -7050,14 +7134,20 @@ async function importerDonneesUtilisateurAdmin(event) {
       if (!ok) return;
 
       const maintenant = Date.now();
-      const lignes = jours.map(j => ({ utilisateur: cible, jour: j, donnees: data.appData[j], maj: maintenant }));
+      const lignes = jours.map(j => ({ utilisateur: cible, jour: j, donnees: assainirJourneeImport(data.appData[j]), maj: maintenant }));
       for (let i = 0; i < lignes.length; i += 200) {
         const { error } = await supa.from('journees').upsert(lignes.slice(i, i + 200), { onConflict: 'utilisateur,jour' });
         if (error) throw error;
       }
       if (data.userProfile) {
+        // upsert remplace toute la colonne donnees : on part du profil actuel
+        // du compte visé pour ne pas effacer sa clé Gemini / son jeton
+        // Withings au passage, puisque sansIdentifiants() les retire du fichier.
+        const rpActuel = await supa.from('profil').select('donnees').eq('utilisateur', cible).maybeSingle();
+        if (rpActuel.error) throw rpActuel.error;
+        const fusion = Object.assign({}, rpActuel.data && rpActuel.data.donnees, sansIdentifiants(data.userProfile));
         const { error: ep } = await supa.from('profil')
-          .upsert([{ utilisateur: cible, donnees: data.userProfile, maj: maintenant }], { onConflict: 'utilisateur' });
+          .upsert([{ utilisateur: cible, donnees: fusion, maj: maintenant }], { onConflict: 'utilisateur' });
         if (ep) throw ep;
       }
 
