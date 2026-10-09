@@ -3288,12 +3288,10 @@
         <p style="margin:0; font-weight:700;" id="compte-email"></p>
       </div>
       <button class="btn btn-secondaire" style="width:100%;" onclick="deconnexionCompte()">Se déconnecter</button>
-      <p class="note" style="margin-top:10px;"><a href="#" onclick="event.preventDefault(); oublierIdentifiants();" style="color:var(--accent);">Oublier les identifiants enregistrés sur cet appareil</a></p>
     </div>
 
     <div id="compte-extras" class="hidden">
       <hr class="sep">
-      <p class="note note-explicative" style="margin:0 0 10px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18" /><path d="m19 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1" /><path d="m5 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M7 21h10" /></svg> <strong>Balance connectée</strong> — lie automatiquement les pesées de ta balance Withings au poids enregistré ici, sans ressaisie manuelle.</p>
       <div id="withings-deconnecte-compte">
         <a href="#" class="btn btn-secondaire lien-connexion-withings" style="width:100%; display:inline-block; box-sizing:border-box; text-align:center; text-decoration:none;" target="_blank" rel="noopener" onclick="return connexionWithings(event)">Connecter ma balance Withings</a>
         <p class="note note-explicative" style="margin:6px 0 0;">Bloqué dans l'appli Withings au lieu de revenir ici ? Reste appuyé sur ce bouton pour choisir « Ouvrir dans Safari ».</p>
@@ -3301,10 +3299,6 @@
       <div id="withings-connecte-compte" class="hidden">
         <button class="btn btn-secondaire" style="width:100%;" onclick="deconnexionWithings()">Déconnecter ma balance Withings</button>
       </div>
-
-      <hr class="sep">
-      <p class="note">Téléphone partagé à tour de rôle ? Déconnecte-toi et vide les données de l'appareil avant que l'autre personne se connecte, pour ne pas mélanger vos journées.</p>
-
 
       <button class="btn btn-primary" style="margin-top:16px;" onclick="fermerModal('compte-modal')">Fermer</button>
     </div>
@@ -8071,11 +8065,6 @@ async function deconnexionCompte() {
   // transférées, on ne laisse plus les repas/poids de cette personne
   // traîner sur l'appareil pour la suivante.
   viderDonneesLocales();
-}
-
-function oublierIdentifiants() {
-  try { localStorage.removeItem(IDENTIFIANTS_LS); } catch (e) {}
-  alert('Identifiants oubliés sur cet appareil.');
 }
 
 /* =====================================================================
