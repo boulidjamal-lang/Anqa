@@ -159,6 +159,10 @@
       --densite-h3-marge: 14px;
       --densite-btn-pad: 14px 20px;
       --densite-btn-h: 48px;
+      --densite-h1-taille: 2.7rem;
+      --densite-macros-pad: 12px;
+      --densite-ecran-marge: 14px;
+      --densite-jauge-marge: 16px;
     }
 
     /* ---- MODE SOMBRE : jetons recalibres, pas simplement inverses.
@@ -226,27 +230,40 @@
       --densite-pad: 16px; --densite-gap: 13px; --densite-nom: 0.89rem; --rayon: 17px;
       --densite-summary-pad: 21px 18px; --densite-titre-marge: 17px 0 7px;
       --densite-h3-marge: 12px; --densite-btn-pad: 13px 19px; --densite-btn-h: 45px;
+      --densite-h1-taille: 2.5rem; --densite-macros-pad: 11px;
+      --densite-ecran-marge: 12px; --densite-jauge-marge: 14px;
     }
     :root[data-densite="2"] {
-      --densite-pad: 13px; --densite-gap: 11px; --densite-nom: 0.86rem; --rayon: 15px;
-      --densite-summary-pad: 19px 16px; --densite-titre-marge: 15px 0 6px;
-      --densite-h3-marge: 11px; --densite-btn-pad: 12px 18px; --densite-btn-h: 43px;
+      --densite-pad: 13px; --densite-gap: 10px; --densite-nom: 0.85rem; --rayon: 14px;
+      --densite-summary-pad: 17px 15px; --densite-titre-marge: 13px 0 6px;
+      --densite-h3-marge: 10px; --densite-btn-pad: 11px 17px; --densite-btn-h: 42px;
+      --densite-h1-taille: 2.25rem; --densite-macros-pad: 10px;
+      --densite-ecran-marge: 10px; --densite-jauge-marge: 12px;
     }
     :root[data-densite="3"] {
-      --densite-pad: 11px; --densite-gap: 9px; --densite-nom: 0.83rem; --rayon: 13px;
-      --densite-summary-pad: 16px 15px; --densite-titre-marge: 12px 0 6px;
-      --densite-h3-marge: 9px; --densite-btn-pad: 10px 17px; --densite-btn-h: 40px;
+      --densite-pad: 10px; --densite-gap: 8px; --densite-nom: 0.8rem; --rayon: 11px;
+      --densite-summary-pad: 12px 12px; --densite-titre-marge: 9px 0 5px;
+      --densite-h3-marge: 8px; --densite-btn-pad: 9px 15px; --densite-btn-h: 38px;
+      --densite-h1-taille: 2rem; --densite-macros-pad: 8px;
+      --densite-ecran-marge: 8px; --densite-jauge-marge: 9px;
     }
+    /* Le cran le plus dense : volontairement très serré, pensé pour voir le
+       maximum de contenu à l'écran plutôt que pour rester confortable à
+       lire — c'est tout l'intérêt par rapport aux crans intermédiaires. */
     :root[data-densite="4"] {
-      --densite-pad: clamp(8px, 2.2vw, 10px);
-      --densite-gap: clamp(6px, 1.6vw, 8px);
-      --densite-nom: 0.8rem;
-      --rayon: 12px;
-      --densite-summary-pad: 14px 14px;
-      --densite-titre-marge: 10px 0 5px;
-      --densite-h3-marge: 8px;
-      --densite-btn-pad: 9px 16px;
-      --densite-btn-h: 38px;
+      --densite-pad: 6px;
+      --densite-gap: 4px;
+      --densite-nom: 0.74rem;
+      --rayon: 8px;
+      --densite-summary-pad: 8px 8px;
+      --densite-titre-marge: 6px 0 3px;
+      --densite-h3-marge: 5px;
+      --densite-btn-pad: 6px 12px;
+      --densite-btn-h: 32px;
+      --densite-h1-taille: 1.6rem;
+      --densite-macros-pad: 6px;
+      --densite-ecran-marge: 5px;
+      --densite-jauge-marge: 6px;
     }
     :root[data-densite="4"] .note-explicative { display: none; }
 
@@ -571,7 +588,7 @@
     .titre-ecran {
       display: flex; align-items: center; gap: 9px;
       font-size: 1.05rem; font-weight: 800; letter-spacing: 0.2px;
-      margin: 2px 0 14px; color: var(--text);
+      margin: 2px 0 var(--densite-ecran-marge); color: var(--text);
     }
     .titre-ecran .ic { font-size: 1.15rem; }
 
@@ -596,11 +613,11 @@
     }
     .summary-card > * { position: relative; z-index: 1; }
     .summary-card span.libelle { color: var(--text-muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
-    .summary-card h1 { margin: 8px 0 4px 0; font-size: 2.7rem; font-weight: 900; color: var(--primary); letter-spacing: -1px; }
+    .summary-card h1 { margin: 8px 0 4px 0; font-size: var(--densite-h1-taille); font-weight: 900; color: var(--primary); letter-spacing: -1px; }
     .target-kcal { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
     .reste-kcal { font-size: 0.8rem; font-weight: 700; margin-bottom: 16px; }
 
-    .jauge { height: 7px; border-radius: 99px; background: var(--verre-creux); overflow: hidden; margin-bottom: 16px; }
+    .jauge { height: 7px; border-radius: 99px; background: var(--verre-creux); overflow: hidden; margin-bottom: var(--densite-jauge-marge); }
     .jauge > i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--primary); transition: width 0.8s cubic-bezier(0.22,1,0.36,1), background 0.4s; }
 
     .macros-bar {
@@ -608,7 +625,7 @@
       background: var(--verre-creux);
       border: 0;
       box-shadow: inset 0 1px 0 var(--verre-lo);
-      padding: 12px; border-radius: 16px;
+      padding: var(--densite-macros-pad); border-radius: 16px;
     }
     .macro-item { display: flex; flex-direction: column; align-items: stretch; flex: 1; text-align: center; }
     .macro-val { font-weight: 800; font-size: 0.92rem; letter-spacing: -0.3px; }
