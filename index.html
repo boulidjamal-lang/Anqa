@@ -213,14 +213,31 @@
       --ambiance: none;
     }
 
-    /* ---- DENSITE : « compact » resserre vraiment tout l'écran (cartes,
-       titres de section, boutons, coins) et cache les textes explicatifs
-       non essentiels (.note-explicative) — le reste (erreurs, avertissements,
-       contenus dynamiques, mentions légales) reste visible. Les valeurs
-       « confort » ci-dessus ne bougent pas : c'est l'affichage déjà en place,
-       seul « compact » doit se distinguer nettement, pas juste de quelques
-       pixels. */
-    :root[data-densite="compact"] {
+    /* ---- DENSITE : jauge réglable à 5 crans (0 = confort, par défaut, pas
+       de sélecteur d'attribut nécessaire ; 4 = compact). Resserre
+       progressivement tout l'écran (cartes, titres de section, boutons,
+       coins) — les valeurs par défaut (confort) ci-dessus ne bougent pas,
+       c'est l'affichage déjà en place. Seul le dernier cran (4, le plus
+       dense) va plus loin et cache en plus les textes explicatifs non
+       essentiels (.note-explicative) et le détail des macros par aliment —
+       le reste (erreurs, avertissements, contenus dynamiques, mentions
+       légales) reste toujours visible, à tous les crans. */
+    :root[data-densite="1"] {
+      --densite-pad: 16px; --densite-gap: 13px; --densite-nom: 0.89rem; --rayon: 17px;
+      --densite-summary-pad: 21px 18px; --densite-titre-marge: 17px 0 7px;
+      --densite-h3-marge: 12px; --densite-btn-pad: 13px 19px; --densite-btn-h: 45px;
+    }
+    :root[data-densite="2"] {
+      --densite-pad: 13px; --densite-gap: 11px; --densite-nom: 0.86rem; --rayon: 15px;
+      --densite-summary-pad: 19px 16px; --densite-titre-marge: 15px 0 6px;
+      --densite-h3-marge: 11px; --densite-btn-pad: 12px 18px; --densite-btn-h: 43px;
+    }
+    :root[data-densite="3"] {
+      --densite-pad: 11px; --densite-gap: 9px; --densite-nom: 0.83rem; --rayon: 13px;
+      --densite-summary-pad: 16px 15px; --densite-titre-marge: 12px 0 6px;
+      --densite-h3-marge: 9px; --densite-btn-pad: 10px 17px; --densite-btn-h: 40px;
+    }
+    :root[data-densite="4"] {
       --densite-pad: clamp(8px, 2.2vw, 10px);
       --densite-gap: clamp(6px, 1.6vw, 8px);
       --densite-nom: 0.8rem;
@@ -231,7 +248,7 @@
       --densite-btn-pad: 9px 16px;
       --densite-btn-h: 38px;
     }
-    :root[data-densite="compact"] .note-explicative { display: none; }
+    :root[data-densite="4"] .note-explicative { display: none; }
 
     /* Le flou est couteux et penible pour certains utilisateurs : on le coupe
        proprement plutot que de laisser le systeme le faire a moitie. */
@@ -668,8 +685,8 @@
     .chip-code:hover, .chip-code:focus-visible { color: var(--text); }
     .chip-code.copie { color: var(--primary); border-color: var(--primary); }
     .food-macros { font-size: 0.7rem; display: flex; gap: 8px; margin-top: 2px; }
-    :root[data-densite="compact"] .food-macros { display: none; }
-    :root[data-densite="compact"] .food-item { padding: 6px 0; }
+    :root[data-densite="4"] .food-macros { display: none; }
+    :root[data-densite="4"] .food-item { padding: 6px 0; }
     /* Le tap révèle les macros masquées : autant que ça se voie et se sente. */
     .food-info { cursor: pointer; border-radius: 8px; transition: background 0.15s; }
     .food-info:active { background: var(--verre-creux); }
@@ -1818,9 +1835,14 @@
   (function () {
     try {
       var t = localStorage.getItem('elite_theme') === 'dark' ? 'dark' : 'light';
-      var d = localStorage.getItem('elite_densite') || 'confort';
+      var d = localStorage.getItem('elite_densite');
+      // Rétrocompatible avec les anciennes valeurs 'confort'/'compact' (avant
+      // la jauge réglable à 5 crans) — voir choisirDensite, même logique.
+      var niveau = d === 'confort' ? 0 : d === 'compact' ? 4 : parseInt(d, 10);
+      if (isNaN(niveau)) niveau = 0;
+      niveau = Math.max(0, Math.min(4, niveau));
       document.documentElement.setAttribute('data-theme', t);
-      document.documentElement.setAttribute('data-densite', d);
+      document.documentElement.setAttribute('data-densite', String(niveau));
       var mtc = document.getElementById('meta-theme-color');
       if (mtc) mtc.setAttribute('content', t === 'dark' ? '#06070a' : '#eaeef5');
       // Pareil pour le manifest (ses propres background_color/theme_color,
@@ -2440,11 +2462,12 @@
       </div>
     </div>
 
-    <div class="input-group">
-      <label><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg> Densité d'affichage</label>
-      <div class="segment" id="segment-densite">
-        <button type="button" onclick="choisirDensite('confort')" aria-pressed="false">Confort</button>
-        <button type="button" onclick="choisirDensite('compact')" aria-pressed="false">Compact</button>
+    <div class="slider-control">
+      <label><span><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg> Densité d'affichage</span><span id="densite-niveau-nom">Confort</span></label>
+      <input type="range" id="slider-densite" min="0" max="4" step="1" value="0" aria-label="Densité d'affichage" oninput="choisirDensite(this.value)">
+      <div style="display:flex; justify-content:space-between; margin-top:2px;">
+        <small class="note" style="margin:0;">Confort</small>
+        <small class="note" style="margin:0;">Compact</small>
       </div>
     </div>
 
@@ -7251,10 +7274,19 @@ async function chargerCouleursApp() {
     console.warn('[Couleurs] chargement indisponible :', e.message);
   }
 }
+const NOMS_DENSITE = ['Confort', 'Équilibré', 'Resserré', 'Dense', 'Compact'];
 function choisirDensite(d) {
-  document.documentElement.setAttribute('data-densite', d);
-  try { localStorage.setItem('elite_densite', d); } catch (e) {}
-  majSegment('segment-densite', ['confort', 'compact'], d);
+  // Rétrocompatible avec les anciennes valeurs 'confort'/'compact' (segment
+  // à deux boutons d'avant la jauge) déjà enregistrées dans localStorage.
+  let niveau = d === 'confort' ? 0 : d === 'compact' ? 4 : parseInt(d, 10);
+  if (isNaN(niveau)) niveau = 0;
+  niveau = Math.max(0, Math.min(4, niveau));
+  document.documentElement.setAttribute('data-densite', String(niveau));
+  try { localStorage.setItem('elite_densite', String(niveau)); } catch (e) {}
+  const slider = document.getElementById('slider-densite');
+  if (slider) slider.value = niveau;
+  const nomEl = document.getElementById('densite-niveau-nom');
+  if (nomEl) nomEl.textContent = NOMS_DENSITE[niveau];
 }
 function majSegment(id, valeurs, actif) {
   const seg = document.getElementById(id);
