@@ -12524,8 +12524,14 @@ function basculerSerieSession(ei, si) {
   if (!set) return;
   set.fait = !set.fait;
   const clef = ei + '_' + si;
-  if (set.fait) reposActifs[clef] = Date.now();
-  else delete reposActifs[clef];
+  if (set.fait) {
+    reposActifs[clef] = Date.now();
+    // Cocher une série vaut "je commence cette série" : le repos qui la
+    // précédait est fini, même si son délai maximum n'est pas écoulé.
+    delete reposActifs[ei + '_' + (si - 1)];
+  } else {
+    delete reposActifs[clef];
+  }
   sauvegarderSessionActive();
   renderSessionModal();
   majBandeauSeanceFlottant();
@@ -12557,14 +12563,21 @@ function reindexerReposApresSuppressionExercice(eiSupprime) {
   });
   reposActifs = suivant;
 }
+// Au-delà de ce délai, la barre disparaît d'elle-même même si la série
+// suivante n'a pas encore été cochée — pas de minuterie infinie oubliée en
+// arrière-plan pendant qu'on discute entre deux séries.
+const REPOS_DUREE_MAX_SEC = 120;
 function majReposActifs() {
+  let expire = false;
   Object.keys(reposActifs).forEach(clef => {
+    const sec = Math.max(0, Math.floor((Date.now() - reposActifs[clef]) / 1000));
+    if (sec >= REPOS_DUREE_MAX_SEC) { delete reposActifs[clef]; expire = true; return; }
     const el = document.getElementById('repos-chrono-' + clef);
     if (!el) return;
-    const sec = Math.max(0, Math.floor((Date.now() - reposActifs[clef]) / 1000));
     const m = Math.floor(sec / 60), s = sec % 60;
     el.textContent = m + ':' + String(s).padStart(2, '0');
   });
+  if (expire) renderSessionModal();
 }
 function ajouterSerieSession(ei) {
   const exo = musculationSessionActive.exercices[ei];
