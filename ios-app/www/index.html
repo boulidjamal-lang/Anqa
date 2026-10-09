@@ -154,6 +154,11 @@
       --densite-gap: clamp(11px, 3.6vw, 18px);
       --densite-nom: 0.92rem;
       --rayon: clamp(16px, 4.8vw, 22px);
+      --densite-summary-pad: 24px 20px;
+      --densite-titre-marge: 20px 0 8px;
+      --densite-h3-marge: 14px;
+      --densite-btn-pad: 14px 20px;
+      --densite-btn-h: 48px;
     }
 
     /* ---- MODE SOMBRE : jetons recalibres, pas simplement inverses.
@@ -208,14 +213,23 @@
       --ambiance: none;
     }
 
-    /* ---- DENSITE : « compact » resserre les cartes et cache les textes
-       explicatifs non essentiels (.note-explicative) — le reste (erreurs,
-       avertissements, contenus dynamiques, mentions légales) reste visible. */
+    /* ---- DENSITE : « compact » resserre vraiment tout l'écran (cartes,
+       titres de section, boutons, coins) et cache les textes explicatifs
+       non essentiels (.note-explicative) — le reste (erreurs, avertissements,
+       contenus dynamiques, mentions légales) reste visible. Les valeurs
+       « confort » ci-dessus ne bougent pas : c'est l'affichage déjà en place,
+       seul « compact » doit se distinguer nettement, pas juste de quelques
+       pixels. */
     :root[data-densite="compact"] {
-      --densite-pad: clamp(11px, 3.2vw, 15px);
-      --densite-gap: clamp(8px, 2.4vw, 12px);
-      --densite-nom: 0.86rem;
-      --rayon: 16px;
+      --densite-pad: clamp(8px, 2.2vw, 10px);
+      --densite-gap: clamp(6px, 1.6vw, 8px);
+      --densite-nom: 0.8rem;
+      --rayon: 12px;
+      --densite-summary-pad: 14px 14px;
+      --densite-titre-marge: 10px 0 5px;
+      --densite-h3-marge: 8px;
+      --densite-btn-pad: 9px 16px;
+      --densite-btn-h: 38px;
     }
     :root[data-densite="compact"] .note-explicative { display: none; }
 
@@ -545,7 +559,7 @@
     .titre-ecran .ic { font-size: 1.15rem; }
 
     .titre-section {
-      font-size: 0.7rem; color: var(--text-muted); margin: 20px 0 8px;
+      font-size: 0.7rem; color: var(--text-muted); margin: var(--densite-titre-marge);
       font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
     }
 
@@ -560,7 +574,7 @@
       backdrop-filter: blur(var(--verre-flou)) saturate(var(--verre-sat));
       border: 0;
       box-shadow: var(--ombre-haute);
-      padding: 24px 20px; border-radius: 24px; text-align: center; margin-bottom: 16px;
+      padding: var(--densite-summary-pad); border-radius: 24px; text-align: center; margin-bottom: var(--densite-gap);
       position: relative; overflow: hidden;
     }
     .summary-card > * { position: relative; z-index: 1; }
@@ -613,7 +627,7 @@
     }
     .daily-questionnaire:hover, .fitness-card:hover, .analysis-card:hover, .meal-card:hover { transform: translateY(-2px); box-shadow: var(--ombre-haute); }
     .daily-questionnaire h3, .fitness-card h3, .analysis-card h3 {
-      margin-top: 0; margin-bottom: 14px; font-size: 0.85rem; font-weight: 700;
+      margin-top: 0; margin-bottom: var(--densite-h3-marge); font-size: 0.85rem; font-weight: 700;
       color: var(--text); letter-spacing: 0.8px; text-transform: uppercase;
     }
 
@@ -1182,7 +1196,7 @@
     .trio input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
 
     .btn {
-      padding: 14px 20px; min-height: 48px; border: 1.5px solid transparent; border-radius: 15px;
+      padding: var(--densite-btn-pad); min-height: var(--densite-btn-h); border: 1.5px solid transparent; border-radius: 15px;
       font-weight: 800; font-family: inherit; cursor: pointer; width: 100%;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); letter-spacing: 0.4px; font-size: 0.9rem;
     }
