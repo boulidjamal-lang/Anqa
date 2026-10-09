@@ -3352,7 +3352,6 @@
     <div id="withings-connecte" class="hidden">
       <button class="btn btn-secondaire" id="btn-import-withings" style="margin:-6px 0 6px;" onclick="importerPoidsWithings()"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18" /><path d="m19 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1" /><path d="m5 8 3 8a5 5 0 0 1-6 0zV7" /><path d="M7 21h10" /></svg> Importer ma dernière pesée Withings</button>
       <p class="note" id="note-import-withings" style="margin:0 0 14px;"></p>
-      <p class="note" style="margin:-8px 0 14px;"><a href="#" onclick="event.preventDefault(); diagnostiquerWithings();" style="color:var(--accent);"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Voir la réponse brute de l'API (diagnostic)</a></p>
     </div>
 
     <!-- Composition globale (corps entier) : ce que Withings sait donner via
@@ -9257,8 +9256,7 @@ function valeurMesureWithings(m) {
    (kg), 88 = masse osseuse (kg), 77 = hydratation (%). Ce sont des totaux
    CORPS ENTIER : l'API publique de Withings ne fournit aucun détail par
    membre (bras/jambes/tronc), même pour les balances Body Scan qui
-   l'affichent dans leur propre appli — voir diagnostiquerWithings() pour
-   vérifier ça à la source si besoin. */
+   l'affichent dans leur propre appli. */
 const WITHINGS_MEASTYPES = { poids: 1, grassePct: 6, muscleKg: 76, osKg: 88, eauPct: 77 };
 
 /* Va chercher la dernière pesée sur Withings et pré-remplit les champs de
@@ -9320,26 +9318,6 @@ async function importerPoidsWithings() {
     alert('Erreur pendant la récupération : ' + e.message);
   } finally {
     if (bouton) { bouton.disabled = false; bouton.textContent = texteInitial; }
-  }
-}
-
-/* Outil de diagnostic temporaire : renvoie tout ce que l'API accepte de
-   donner pour la dernière pesée (aucun filtre de meastypes), pour vérifier
-   à la source si un champ segmentaire (bras/jambes/tronc) apparaît quelque
-   part dans la réponse — au-delà de ce que les bibliothèques communautaires
-   documentent habituellement. */
-async function diagnostiquerWithings() {
-  const token = await withingsAccessTokenValide();
-  if (!token) { alert("Connecte-toi d'abord à Withings (bouton Connecter ma balance)."); return; }
-  try {
-    const resp = await fetch('https://wbsapi.withings.net/measure?' + new URLSearchParams({
-      action: 'getmeas', category: 1
-    }), { headers: { Authorization: 'Bearer ' + token } });
-    const data = await resp.json();
-    const texte = JSON.stringify(data, null, 2);
-    window.prompt('Réponse brute de Withings (Ctrl+A puis Ctrl+C pour copier, colle-la dans la conversation) :', texte);
-  } catch (e) {
-    alert('Erreur : ' + e.message);
   }
 }
 
