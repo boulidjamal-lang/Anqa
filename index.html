@@ -481,9 +481,9 @@
 
     .container { max-width: 560px; margin: 0 auto; padding: 0 16px; position: relative; z-index: 1; }
 
-    /* --- BARRE D'APPLICATION COLLANTE --- */
+    /* --- BARRE D'APPLICATION --- */
     .app-bar {
-      position: sticky; top: 0; z-index: 60;
+      position: relative; z-index: 60;
       padding: calc(7px + env(safe-area-inset-top, 0px)) 16px 7px;
       /* Fond plat, sans --verre-sheen : ce reflet est le plus lumineux en
          haut à gauche (radial-gradient à var(--lx)/var(--ly), plus le
