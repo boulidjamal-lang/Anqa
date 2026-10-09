@@ -3475,9 +3475,13 @@
     <div id="error-display" class="error-box hidden"></div>
 
     <div id="ai-results-container" class="hidden">
-      <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; color: var(--text-muted);">Aliments détectés</h4>
+      <h4 id="ai-results-titre" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; color: var(--text-muted);">Aliments détectés</h4>
+      <div id="ai-recette-nom-group" class="input-group hidden">
+        <label for="ai-recette-nom">Nom de la recette</label>
+        <input type="text" id="ai-recette-nom" oninput="nomRecetteGemini=this.value">
+      </div>
       <div id="detected-ingredients-list"></div>
-      <button class="btn btn-primary" onclick="ajouterIngredientsGemini()" style="margin-top: 16px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m16 9-5.5 5.5L8 12" /></svg> Tout ajouter au repas</button>
+      <button class="btn btn-primary" id="ai-results-btn" onclick="confirmerDetectionGemini()" style="margin-top: 16px;"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m16 9-5.5 5.5L8 12" /></svg> <span id="ai-results-btn-texte">Tout ajouter au repas</span></button>
     </div>
   </div>
 </div>
@@ -3758,6 +3762,8 @@ let activeMealId = null;
 let html5QrCode = null;
 let currentScannedFood = null;
 let detectedBufferGemini = [];
+let typeDetectionGemini = 'aliment'; // 'aliment' ou 'recette' — déterminé par Gemini à l'analyse
+let nomRecetteGemini = '';
 
 let caloriesChartInstance = null, macrosChartInstance = null, stepsChartInstance = null, workoutChartInstance = null;
 let eauChartInstance = null;
@@ -6043,7 +6049,7 @@ function fichierVersBase64(file) {
   });
 }
 
-const PROMPT_JSON_ALIMENTS = "Renvoie UNIQUEMENT un tableau JSON (sans texte autour) des aliments. Pour chaque aliment: {\"name\": string en français, \"grams\": number (portion estimée en g), \"kcal100\": number (kcal pour 100g), \"p100\": number, \"c100\": number, \"f100\": number}. Pour estimer grams le plus précisément possible : si une photo est fournie, examine d'abord l'intégralité de l'image (pas seulement l'aliment) pour repérer tous les objets de référence disponibles — assiette, bol, couverts, verre, main, emballage, table, etc. Sers-toi de tailles standards connues pour calibrer l'échelle de la photo : assiette plate ~24-27cm de diamètre, assiette à dessert ~18-20cm, fourchette ou couteau ~20cm, verre standard ~8-10cm de diamètre, main d'adulte ~18-20cm de longueur. Quand plusieurs repères sont visibles, croise-les entre eux plutôt que de te fier à un seul, pour fiabiliser l'échelle avant d'estimer le poids. Tiens compte aussi du volume apparent de l'aliment (hauteur et empilement dans l'assiette, pas seulement la surface occupée vue de dessus) et de sa densité (un féculent cuit ou une viande pèsent plus qu'un légume vert pour un volume équivalent) ; sans photo, base-toi sur une portion individuelle standard pour ce type d'aliment.";
+const PROMPT_JSON_ALIMENTS = "Renvoie UNIQUEMENT un objet JSON (sans texte autour), de la forme {\"type\": \"aliment\" ou \"recette\", \"nom\": string (nom du plat, uniquement si type est \"recette\"), \"aliments\": tableau}. Mets \"recette\" si c'est un plat cuisiné composé de plusieurs ingrédients mélangés (ex: gratin, curry, salade composée, plat mijoté, pâtes en sauce) qui mérite d'être enregistré comme recette réutilisable ; mets \"aliment\" si ce sont des éléments simples et séparés dans l'assiette (ex: un yaourt, une pomme, un sandwich seul, plusieurs aliments distincts non mélangés). Le tableau \"aliments\" liste dans les deux cas les éléments détectés : les ingrédients si \"recette\", les aliments séparés si \"aliment\". Pour chaque élément du tableau : {\"name\": string en français, \"grams\": number (portion estimée en g), \"kcal100\": number (kcal pour 100g), \"p100\": number, \"c100\": number, \"f100\": number}. Pour estimer grams le plus précisément possible : si une photo est fournie, examine d'abord l'intégralité de l'image (pas seulement l'aliment) pour repérer tous les objets de référence disponibles — assiette, bol, couverts, verre, main, emballage, table, etc. Sers-toi de tailles standards connues pour calibrer l'échelle de la photo : assiette plate ~24-27cm de diamètre, assiette à dessert ~18-20cm, fourchette ou couteau ~20cm, verre standard ~8-10cm de diamètre, main d'adulte ~18-20cm de longueur. Quand plusieurs repères sont visibles, croise-les entre eux plutôt que de te fier à un seul, pour fiabiliser l'échelle avant d'estimer le poids. Tiens compte aussi du volume apparent de l'aliment (hauteur et empilement dans l'assiette, pas seulement la surface occupée vue de dessus) et de sa densité (un féculent cuit ou une viande pèsent plus qu'un légume vert pour un volume équivalent) ; sans photo, base-toi sur une portion individuelle standard pour ce type d'aliment.";
 
 /* Photo, description, ou les deux : les deux champs sont maintenant
    indépendants (avant, seule une photo pouvait déclencher l'analyse — pas
@@ -6072,30 +6078,85 @@ async function analyserRepasGemini() {
     if (file) parts.push({ inline_data: { mime_type: file.type || 'image/jpeg', data: await fichierVersBase64(file) } });
 
     const res = await geminiGenerate(parts, 'photo');
-    const arr = parseJsonArray(res);
-    document.getElementById('ai-loader').classList.add('hidden');
-    if (!arr || !arr.length) { showAiError('Aucun aliment détecté.'); return; }
-    detectedBufferGemini = arr.map(a => ({
+    const data = parseJsonObject(res);
+    const aliments = data && Array.isArray(data.aliments) ? data.aliments : null;
+    if (!aliments || !aliments.length) { document.getElementById('ai-loader').classList.add('hidden'); showAiError('Aucun aliment détecté.'); return; }
+
+    typeDetectionGemini = data.type === 'recette' ? 'recette' : 'aliment';
+    nomRecetteGemini = String(data.nom || '').trim() || 'Recette détectée';
+    detectedBufferGemini = aliments.map(a => ({
       name: a.name || 'Aliment', grams: Number(a.grams) || 100,
       kcal100: Number(a.kcal100) || 0, p100: Number(a.p100) || 0,
       c100: Number(a.c100) || 0, f100: Number(a.f100) || 0
     }));
+
+    /* Une recette est enregistrée comme réutilisable : avant de la créer, on
+       vérifie si chaque ingrédient existe déjà dans la base (historique,
+       CIQUAL, aliments partagés, USDA — mêmes sources que la recherche
+       manuelle), pour réutiliser ses valeurs nutritionnelles de référence
+       plutôt que la seule estimation de Gemini. Pas fait pour un simple
+       "aliment" détecté : ce chemin existait déjà et fonctionne bien tel quel. */
+    if (typeDetectionGemini === 'recette') {
+      await completerIngredientsDepuisBase(detectedBufferGemini);
+    }
+
+    document.getElementById('ai-loader').classList.add('hidden');
     renderDetectedRows();
   } catch (err) {
     document.getElementById('ai-loader').classList.add('hidden');
     showAiError(messageIA(err));
   }
 }
+
+// Pour chaque ingrédient détecté, cherche une correspondance exacte de nom
+// dans les sources déjà utilisées par la recherche manuelle d'aliments ; si
+// trouvée, ses valeurs/100g (plus fiables qu'une estimation visuelle)
+// remplacent celles de Gemini. Sinon l'ingrédient est marqué "nouveau" pour
+// rejoindre la base partagée une fois la recette créée (voir creerEtLoguerRecetteGemini).
+async function completerIngredientsDepuisBase(items) {
+  for (const it of items) {
+    try {
+      const { deja, suite } = await rechercherTousAliments(it.name);
+      const cible = normaliserRecherche(it.name);
+      const match = deja.concat(suite).find(p => normaliserRecherche(p.name) === cible);
+      if (match) {
+        const n = match.nutriments || {};
+        it.name = match.name || it.name;
+        it.kcal100 = Math.round(n['energy-kcal_100g'] || 0);
+        it.p100 = round1(n['proteins_100g']) || 0;
+        it.c100 = round1(n['carbohydrates_100g']) || 0;
+        it.f100 = round1(n['fat_100g']) || 0;
+        it.dejaEnBase = true;
+      } else {
+        it.dejaEnBase = false;
+      }
+    } catch (e) { it.dejaEnBase = false; }
+  }
+}
+
 function renderDetectedRows() {
+  const estRecette = typeDetectionGemini === 'recette';
+  document.getElementById('ai-results-titre').textContent = estRecette ? 'Ingrédients de la recette' : 'Aliments détectés';
+  document.getElementById('ai-results-btn-texte').textContent = estRecette ? 'Créer la recette et l\'ajouter au repas' : 'Tout ajouter au repas';
+  const groupeNom = document.getElementById('ai-recette-nom-group');
+  groupeNom.classList.toggle('hidden', !estRecette);
+  if (estRecette) document.getElementById('ai-recette-nom').value = nomRecetteGemini;
+
   document.getElementById('detected-ingredients-list').innerHTML = detectedBufferGemini.map((a, i) => `
     <div class="detected-row">
-      <span style="font-weight:600;font-size:0.88rem;">${escapeHtml(a.name)}</span>
+      <span style="font-weight:600;font-size:0.88rem;">${escapeHtml(a.name)}${estRecette && a.dejaEnBase ? ' <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem;">(déjà en base)</span>' : ''}</span>
       <div style="display:flex;align-items:center;gap:6px;">
         <input type="number" value="${Math.round(a.grams)}" onchange="detectedBufferGemini[${i}].grams=Number(this.value)"> <span style="font-size:0.75rem;color:var(--text-muted);">g</span>
       </div>
     </div>`).join('');
   document.getElementById('ai-results-container').classList.remove('hidden');
 }
+
+function confirmerDetectionGemini() {
+  if (typeDetectionGemini === 'recette') creerEtLoguerRecetteGemini();
+  else ajouterIngredientsGemini();
+}
+
 function ajouterIngredientsGemini() {
   const day = getDay(currentDate);
   detectedBufferGemini.forEach(a => {
@@ -6110,6 +6171,34 @@ function ajouterIngredientsGemini() {
   saveData(currentDate);
   invaliderHistorique();
   renderMeals(day); updateSummary(day);
+  detectedBufferGemini = [];
+  fermerModal('ai-modal');
+}
+
+// Crée la recette repérée par Gemini dans "Mes recettes", y loggue aussitôt
+// une portion dans le repas actif, et fait rejoindre la base partagée les
+// ingrédients qui n'y étaient pas déjà (même mécanisme que l'ajout manuel
+// d'un aliment, voir enregistrerAlimentDansBase).
+async function creerEtLoguerRecetteGemini() {
+  const nom = (document.getElementById('ai-recette-nom').value || '').trim() || nomRecetteGemini || 'Recette détectée';
+  const recette = {
+    id: identifiantUnique(), nom, portions: 1,
+    ingredients: detectedBufferGemini.map(a => ({
+      nom: a.name, grammes: Math.round(a.grams) || 0,
+      kcal100: a.kcal100, p100: a.p100, c100: a.c100, f100: a.f100
+    }))
+  };
+  const ok = await enregistrerRecettePersoDistant(recette);
+  if (!ok) return;
+  recettesPerso.push(recette);
+  try { localStorage.setItem(RECETTES_PERSO_KEY, JSON.stringify(recettesPerso)); } catch (e) {}
+  renderRecettesPerso();
+
+  detectedBufferGemini.filter(a => !a.dejaEnBase).forEach(a => {
+    enregistrerAlimentDansBase({ name: a.name, grams: 100, kcal: a.kcal100, p: a.p100, c: a.c100, f: a.f100 });
+  });
+
+  loguerPortionRecettePerso(recette.id, activeMealId || repasDuMoment());
   detectedBufferGemini = [];
   fermerModal('ai-modal');
 }
@@ -6406,6 +6495,12 @@ async function geminiGenerate(parts, type) {
 function parseJsonArray(text) {
   try {
     const m = text.match(/\[[\s\S]*\]/);
+    return JSON.parse(m ? m[0] : text);
+  } catch (e) { return null; }
+}
+function parseJsonObject(text) {
+  try {
+    const m = text.match(/\{[\s\S]*\}/);
     return JSON.parse(m ? m[0] : text);
   } catch (e) { return null; }
 }
