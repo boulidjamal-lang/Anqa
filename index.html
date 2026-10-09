@@ -2417,6 +2417,13 @@
     </div>
 
     <div class="admin-separateur">
+      <button class="btn btn-primary" type="button" id="btn-corriger-unites-admin" onclick="corrigerUnitesTousComptes()">
+        <span id="btn-corriger-unites-admin-texte"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg> Corriger les unités g/ml</span>
+      </button>
+      <p class="note note-explicative">Repère les boissons encore marquées en grammes et les convertit en ml, sur les journées de <strong>tous les comptes</strong>.</p>
+    </div>
+
+    <div class="admin-separateur">
       <button class="btn btn-primary" type="button" onclick="afficherFeuillAlimentsPersonalises()">
         <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></svg> Aliments partagés
       </button>
@@ -2845,11 +2852,6 @@
       <button class="feuille-action" type="button" onclick="document.getElementById('admin-import-file-input').click()">
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg></span>
         <span>Importer des données<span class="sous">Remplace les journées de ce compte</span></span>
-      </button>
-      <input type="file" id="admin-import-file-input" accept=".json,application/json" class="hidden" onchange="importerDonneesUtilisateurAdmin(event)">
-      <button class="feuille-action" type="button" id="btn-corriger-unites-admin" onclick="corrigerUnitesCompteAdmin()">
-        <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></span>
-        <span id="btn-corriger-unites-admin-texte">Corriger les unités g/ml<span class="sous">Convertit en ml les boissons encore en grammes</span></span>
       </button>
       <button class="feuille-action" type="button" onclick="ouvrirJournalAdmin(adminUserCourant)">
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg></span>
@@ -5574,15 +5576,14 @@ function uniteProbableParNom(nom) {
    (ex. une marque). Un geste explicite (bouton en Réglages), pas un passage
    automatique au chargement : c'est une modification de données, l'appli
    ne la déclenche jamais toute seule. */
-/* Réservé à l'admin (voir feuille-admin-user) : agit sur le compte
-   sélectionné (adminUserCourant) via Supabase directement, comme
-   exporterDonneesUtilisateurAdmin()/importerDonneesUtilisateurAdmin() —
-   jamais sur les données locales de l'admin. */
-async function corrigerUnitesCompteAdmin() {
-  if (!adminUserCourant) return;
-  const compte = adminComptes[adminUserCourant] || {};
-  const nom = compte.email || String(adminUserCourant).slice(0, 8);
-  if (!confirm(`Analyser tous les repas déjà enregistrés pour ${nom} afin de repérer les `
+/* Réservé à l'admin (écran Administration) : agit sur TOUTE la base — les
+   journées de tous les comptes, pas un seul compte sélectionné — via
+   Supabase directement. La policy RLS "journees par compte" laisse
+   ADMIN_EMAIL lire/écrire n'importe quelle ligne, y compris sans filtre
+   .eq('utilisateur', …) : un select() sans ce filtre renvoie donc déjà
+   les journées de tout le monde. */
+async function corrigerUnitesTousComptes() {
+  if (!confirm("Analyser TOUS les repas de TOUS les comptes pour repérer les "
     + "boissons encore marquées en grammes et les convertir en ml ?\n\n"
     + "Seuls les aliments actuellement en g sont revérifiés ; le reste ne change pas.")) return;
 
@@ -5590,23 +5591,25 @@ async function corrigerUnitesCompteAdmin() {
   const texte = document.getElementById('btn-corriger-unites-admin-texte');
   const texteInitial = texte ? texte.innerHTML : '';
   if (bouton) bouton.disabled = true;
-  if (texte) texte.innerHTML = 'Analyse en cours…';
+  if (texte) texte.textContent = 'Analyse en cours…';
 
   try {
-    const { data, error } = await supa.from('journees').select('jour,donnees').eq('utilisateur', adminUserCourant);
+    const { data, error } = await supa.from('journees').select('utilisateur,jour,donnees');
     if (error) throw error;
 
-    const joursModifies = new Map(); // jour -> donnees modifiées
+    const lignesModifiees = new Map(); // "utilisateur_jour" -> { utilisateur, jour, donnees }
+    const comptesModifies = new Set();
     let corriges = 0;
     let examines = 0;
 
     // 1) Passe locale, instantanée : le nom seul suffit pour la plupart des
     //    boissons évidentes (eau, jus, soda, lait...). Les aliments avec un
     //    code-barres que le nom ne trahit pas sont mis de côté pour la passe 2.
-    const parCode = new Map();   // code -> [{ jour, mealId, idx }]
+    const parCode = new Map();   // code -> [{ utilisateur, jour, mealId, idx }]
     (data || []).forEach(r => {
       const j = r.donnees;
       if (!j || !j.meals) return;
+      const cleLigne = r.utilisateur + '_' + r.jour;
       Object.keys(j.meals).forEach(mealId => {
         const liste = j.meals[mealId];
         if (!Array.isArray(liste)) return;
@@ -5616,11 +5619,12 @@ async function corrigerUnitesCompteAdmin() {
           if (uniteProbableParNom(it.name) === 'ml') {
             it.unite = 'ml';
             corriges++;
-            joursModifies.set(r.jour, j);
+            comptesModifies.add(r.utilisateur);
+            lignesModifiees.set(cleLigne, { utilisateur: r.utilisateur, jour: r.jour, donnees: j });
           } else if (it.code) {
             const cle = String(it.code);
             if (!parCode.has(cle)) parCode.set(cle, []);
-            parCode.get(cle).push({ jour: r.jour, donnees: j, mealId, idx });
+            parCode.get(cle).push({ utilisateur: r.utilisateur, jour: r.jour, donnees: j, mealId, idx });
           }
         });
       });
@@ -5628,37 +5632,40 @@ async function corrigerUnitesCompteAdmin() {
 
     // 2) Passe réseau : un code-barres à la fois, avec une courte pause —
     //    l'API OpenFoodFacts est gratuite et publique, on ne la bombarde pas.
+    //    Un même code-barres n'est interrogé qu'une fois même s'il revient
+    //    chez plusieurs comptes (parCode est dédupliqué par code).
     const codes = Array.from(parCode.keys());
     for (let i = 0; i < codes.length; i++) {
       const code = codes[i];
-      if (texte) texte.innerHTML = `Code-barres restants ${i + 1}/${codes.length}…`;
+      if (texte) texte.textContent = `Code-barres restants ${i + 1}/${codes.length}…`;
       try {
         const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
         const j = await r.json();
         if (j.status === 1 && uniteProbable(j.product) === 'ml') {
-          parCode.get(code).forEach(({ jour, donnees, mealId, idx }) => {
+          parCode.get(code).forEach(({ utilisateur, jour, donnees, mealId, idx }) => {
             donnees.meals[mealId][idx].unite = 'ml';
             corriges++;
-            joursModifies.set(jour, donnees);
+            comptesModifies.add(utilisateur);
+            lignesModifiees.set(utilisateur + '_' + jour, { utilisateur, jour, donnees });
           });
         }
       } catch (e) { /* hors ligne ou code introuvable : cet aliment reste en g */ }
       if (i < codes.length - 1) await new Promise(res => setTimeout(res, 200));
     }
 
-    if (joursModifies.size) {
+    if (lignesModifiees.size) {
       const maintenant = Date.now();
-      const lignes = Array.from(joursModifies.entries()).map(([jour, donnees]) => ({ utilisateur: adminUserCourant, jour, donnees, maj: maintenant }));
+      const lignes = Array.from(lignesModifiees.values()).map(l => ({ utilisateur: l.utilisateur, jour: l.jour, donnees: l.donnees, maj: maintenant }));
       for (let i = 0; i < lignes.length; i += 200) {
         const { error: eUp } = await supa.from('journees').upsert(lignes.slice(i, i + 200), { onConflict: 'utilisateur,jour' });
         if (eUp) throw eUp;
       }
-      await consignerAction('unites_corrigees', adminUserCourant, nom, null, corriges + ' unité(s) corrigée(s)');
+      await consignerAction('unites_corrigees', null, 'Tous les comptes', null, corriges + ' unité(s) corrigée(s) sur ' + comptesModifies.size + ' compte(s)');
     }
 
     alert(corriges > 0
-      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${joursModifies.size} jour(s) (${examines} aliment(s) en grammes examinés au total), pour ${nom}.`
-      : `Rien à corriger pour ${nom} : les ${examines} aliment(s) encore en grammes semblent tous être des aliments solides, pas des boissons.`);
+      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${lignesModifiees.size} journée(s) et ${comptesModifies.size} compte(s) (${examines} aliment(s) en grammes examinés au total).`
+      : `Rien à corriger : les ${examines} aliment(s) encore en grammes semblent tous être des aliments solides, pas des boissons.`);
   } catch (e) {
     alert('Erreur : ' + e.message);
   } finally {
