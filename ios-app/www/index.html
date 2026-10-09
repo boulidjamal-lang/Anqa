@@ -2826,6 +2826,10 @@
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" /></svg></span>
         <span>Historique<span class="sous">Actions passées sur ce compte</span></span>
       </button>
+      <button class="feuille-action" type="button" onclick="reinitialiserMotDePasseUtilisateur()">
+        <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></span>
+        <span>Réinitialiser le mot de passe<span class="sous">Envoie un lien par email pour en choisir un nouveau</span></span>
+      </button>
       <button class="feuille-action" type="button" onclick="ouvrirRattachementFeuille()" data-destructif>
         <span class="ic" aria-hidden="true"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg></span>
         <span>Rattacher les données<span class="sous">Transférer vers un autre compte</span></span>
@@ -3308,10 +3312,13 @@
         <label for="compte-mdp-input">Mot de passe</label>
         <input type="password" id="compte-mdp-input" placeholder="6 caractères minimum" autocomplete="current-password">
       </div>
-      <label style="display:flex; align-items:center; gap:8px; font-size:0.82rem; font-weight:600; margin:-6px 0 14px; cursor:pointer;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:0.82rem; font-weight:600; margin:-6px 0 10px; cursor:pointer;">
         <input type="checkbox" id="compte-souvenir" style="width:auto;">
         Se souvenir de moi sur cet appareil
       </label>
+      <p style="text-align:right; margin:-4px 0 14px;">
+        <a href="#" onclick="motDePasseOublieDirect(); return false;" style="color:var(--accent); font-weight:600; font-size:0.82rem;">Mot de passe oublié ?</a>
+      </p>
       <p class="note" id="note-compte"></p>
       <div style="display:flex; gap:10px;">
         <button class="btn btn-primary" style="flex:1;" onclick="connexionOuCreerCompte()">Se connecter</button>
@@ -8478,6 +8485,29 @@ async function connexionOuCreerCompte() {
     document.getElementById('compte-mdp-input').value = '';
   } else {
     if (note) note.textContent = 'Compte créé : vérifie ta boîte mail pour confirmer ton adresse, puis reviens te connecter avec ce même mot de passe.';
+  }
+}
+
+// Lien "Mot de passe oublié ?" de l'écran de connexion : contrairement au
+// repli automatique dans connexionOuCreerCompte() (déclenché seulement après
+// un échec de connexion), ici la personne sait déjà qu'elle a oublié son
+// mot de passe et clique directement, sans avoir à se tromper une première
+// fois. resetPasswordForEmail() ne révèle jamais si l'adresse existe ou non
+// (même réponse dans les deux cas), donc pas besoin de la vérifier avant.
+async function motDePasseOublieDirect() {
+  if (!supa) { alert("Renseigne d'abord l'URL et la clé du projet Supabase (section Synchronisation) : la connexion utilise le même projet."); return; }
+  const email = (document.getElementById('compte-email-input').value || '').trim();
+  const note = document.getElementById('note-compte');
+  if (!email) { if (note) note.textContent = "Indique d'abord ton adresse email ci-dessus, puis reclique sur « Mot de passe oublié ? »."; return; }
+  if (note) note.textContent = 'Envoi en cours…';
+  try {
+    const { error } = await supa.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) throw error;
+    if (note) note.textContent = `Email envoyé à ${email} (si ce compte existe) : suis le lien pour choisir un nouveau mot de passe.`;
+  } catch (e) {
+    if (note) note.textContent = messageAuth(e);
   }
 }
 
@@ -13961,6 +13991,34 @@ async function suspendreUtilisateur() {
   await definirBlocage(id, reactive ? null : 'suspendu', true);
   await consignerAction(reactive ? 'reactiver' : 'suspendre', id, nom, motif, null);
   await chargerAdmin();
+}
+
+// Il est impossible (et volontairement impossible) de consulter le mot de
+// passe d'un compte — Supabase Auth le hache de façon irréversible. La seule
+// façon sécurisée de dépanner quelqu'un qui l'a perdu est de lui envoyer un
+// lien de réinitialisation, exactement comme le lien "Mot de passe oublié ?"
+// de l'écran de connexion (voir motDePasseOublieDirect) : même appel, mais
+// déclenché par l'admin pour l'adresse du compte consulté.
+async function reinitialiserMotDePasseUtilisateur() {
+  if (!adminUserCourant) return;
+  const u = adminComptes[adminUserCourant] || {};
+  const email = u.email;
+  if (!email) { alert('Adresse email introuvable pour ce compte.'); return; }
+
+  fermerFeuilles();
+  const motif = await demanderMotif(`Envoyer un email de réinitialisation du mot de passe à ${email} ?`);
+  if (motif === null) return;
+
+  try {
+    const { error } = await supa.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) throw error;
+    await consignerAction('reset_mdp', adminUserCourant, email, motif, null);
+    alert(`Email de réinitialisation envoyé à ${email}.`);
+  } catch (e) {
+    alert('Envoi impossible : ' + e.message);
+  }
 }
 
 async function supprimerUtilisateur() {
