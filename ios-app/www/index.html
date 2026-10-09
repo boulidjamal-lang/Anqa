@@ -716,6 +716,10 @@
     /* Le tap révèle les macros masquées : autant que ça se voie et se sente. */
     .food-info { cursor: pointer; border-radius: 8px; transition: background 0.15s; }
     .food-info:active { background: var(--verre-creux); }
+    /* Poids non modifiable pour un aliment venu d'une recette (voir
+       renderMeals) : aucun curseur cliquable, aucun retour au toucher. */
+    .food-info--fixe { cursor: default; }
+    .food-info--fixe:active { background: none; }
     .tag-p { color: var(--protein); font-weight: 700; }
     .tag-c { color: var(--carbs); font-weight: 700; }
     .tag-f { color: var(--fat); font-weight: 700; }
@@ -4172,10 +4176,16 @@ function renderMeals(day) {
             <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             ${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}
           </button>${ouvertIngr ? `<div class="choix-recette-ingredients">${ingredients.map(ing => `<div>${escapeHtml(String(ing))}</div>`).join('')}</div>` : ''}` : '';
+      // Le poids d'un aliment venu d'une recette n'est pas modifiable : le
+      // détail des ingrédients est un instantané figé (voir
+      // loguerPortionRecettePerso), qui ne peut pas se mettre à l'échelle en
+      // même temps que le poids total — les deux se contrediraient aussitôt.
+      const estRecette = ingredients.length > 0;
       return `
       <li class="food-item">
         <div class="food-item-ligne">
-          <div class="food-info" onclick="ouvrirPoidsAliment(this)"
+          <div class="food-info${estRecette ? ' food-info--fixe' : ''}"${estRecette ? '' : ' onclick="ouvrirPoidsAliment(this)"'}
+               ${estRecette ? 'title="Poids fixé par la recette — modifiable uniquement en la resupprimant/rajoutant"' : ''}
                data-meal="${mealId}" data-index="${i}" data-grams="${Number(it.grams) || 0}"
                data-nom="${escapeHtml(it.name)}" data-kcal="${Math.round(it.kcal)}"
                data-p="${Math.round(it.p)}" data-c="${Math.round(it.c)}" data-f="${Math.round(it.f)}">
