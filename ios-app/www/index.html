@@ -5590,10 +5590,15 @@ async function corrigerUnitesHistorique() {
   try {
     const joursModifies = new Set();
     let corriges = 0;
+    let examines = 0;
 
     // 1) Passe locale, instantanée : le nom seul suffit pour la plupart des
     //    boissons évidentes (eau, jus, soda, lait...). Les aliments avec un
     //    code-barres que le nom ne trahit pas sont mis de côté pour la passe 2.
+    //    Elle couvre TOUT l'historique d'un coup, sans retour visuel — le
+    //    compteur "examines" sert à le rappeler dans le message final, pour
+    //    ne pas laisser croire que seule la passe 2 (code-barres) a regardé
+    //    quelque chose.
     const parCode = new Map();   // code -> [{ ds, mealId, idx }]
     Object.keys(appData).forEach(ds => {
       const j = appData[ds];
@@ -5603,6 +5608,7 @@ async function corrigerUnitesHistorique() {
         if (!Array.isArray(liste)) return;
         liste.forEach((it, idx) => {
           if (!it || it.unite === 'ml') return;
+          examines++;
           if (uniteProbableParNom(it.name) === 'ml') {
             it.unite = 'ml';
             corriges++;
@@ -5618,10 +5624,13 @@ async function corrigerUnitesHistorique() {
 
     // 2) Passe réseau : un code-barres à la fois, avec une courte pause —
     //    l'API OpenFoodFacts est gratuite et publique, on ne la bombarde pas.
+    //    Ce n'est qu'un reliquat de la passe 1 (aliments non reconnus par le
+    //    nom mais portant un code-barres), pas le nombre total d'aliments
+    //    traités — d'où la précision "restants" dans le texte du bouton.
     const codes = Array.from(parCode.keys());
     for (let i = 0; i < codes.length; i++) {
       const code = codes[i];
-      if (bouton) bouton.innerHTML = `<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg> Code-barres ${i + 1}/${codes.length}…`;
+      if (bouton) bouton.innerHTML = `<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg> Code-barres restants ${i + 1}/${codes.length}…`;
       try {
         const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
         const j = await r.json();
@@ -5642,8 +5651,8 @@ async function corrigerUnitesHistorique() {
     updateSummary(getDay(currentDate));
 
     alert(corriges > 0
-      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${joursModifies.size} jour(s).`
-      : "Rien à corriger : tout était déjà correctement marqué.");
+      ? `${corriges} aliment(s) corrigé(s) en ml, sur ${joursModifies.size} jour(s) (${examines} aliment(s) en grammes examinés au total).`
+      : `Rien à corriger : les ${examines} aliment(s) encore en grammes semblent tous être des aliments solides, pas des boissons.`);
   } finally {
     if (bouton) { bouton.disabled = false; bouton.textContent = texteInitial; }
   }
