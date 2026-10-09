@@ -683,11 +683,16 @@
 
     .food-list { list-style: none; padding: 0; margin: 0; }
     .food-item {
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; flex-direction: column; gap: 3px;
       padding: 9px 0; font-size: 0.9rem; border-bottom: 1px solid var(--verre-brd);
-      gap: 10px;
     }
     .food-item:last-child { border-bottom: none; }
+    .food-item-ligne { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    /* Détail des ingrédients d'un aliment ajouté depuis une recette — même
+       principe de repli que .serie-paliers-toggle ailleurs, juste réaligné
+       sur le bord gauche (pas d'indentation de pastille de série ici). */
+    .food-item .serie-paliers-toggle { padding: 0; }
+    .food-item .choix-recette-ingredients { padding: 2px 0 0; }
     .food-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .food-name { font-weight: 600; font-size: var(--densite-nom); overflow-wrap: anywhere; }
     .food-detail { font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
@@ -4143,31 +4148,54 @@ function validerPoidsAliment() {
   fermerModal('macros-popup-modal');
 }
 
+// Détail des ingrédients d'un aliment issu d'une recette, replié par
+// défaut (voir loguerPortionRecettePerso). Clé "jour_repas_index" plutôt
+// qu'un id stable : les aliments n'en ont pas, mais inclure la date suffit
+// à éviter qu'un repli ouvert sur un jour donné ressorte ouvert ailleurs en
+// changeant simplement de journée.
+let ingredientsAlimentOuvert = {};
+function basculerIngredientsAliment(mealId, i) {
+  const clef = currentDate + '_' + mealId + '_' + i;
+  ingredientsAlimentOuvert[clef] = !ingredientsAlimentOuvert[clef];
+  renderMeals(getDay(currentDate));
+}
 function renderMeals(day) {
   const container = document.getElementById('meals-container');
   container.innerHTML = MEALS.map(mealId => {
     const items = day.meals[mealId];
-    const rows = items.length ? items.map((it, i) => `
+    const rows = items.length ? items.map((it, i) => {
+      const ingredients = Array.isArray(it.ingredients) ? it.ingredients : [];
+      const clefIngr = currentDate + '_' + mealId + '_' + i;
+      const ouvertIngr = !!ingredientsAlimentOuvert[clefIngr];
+      const blocIngredients = ingredients.length ? `
+          <button type="button" class="serie-paliers-toggle ${ouvertIngr ? 'ouvert' : ''}" aria-expanded="${ouvertIngr}" onclick="basculerIngredientsAliment('${mealId}',${i})">
+            <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            ${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}
+          </button>${ouvertIngr ? `<div class="choix-recette-ingredients">${ingredients.map(ing => `<div>${escapeHtml(String(ing))}</div>`).join('')}</div>` : ''}` : '';
+      return `
       <li class="food-item">
-        <div class="food-info" onclick="ouvrirPoidsAliment(this)"
-             data-meal="${mealId}" data-index="${i}" data-grams="${Number(it.grams) || 0}"
-             data-nom="${escapeHtml(it.name)}" data-kcal="${Math.round(it.kcal)}"
-             data-p="${Math.round(it.p)}" data-c="${Math.round(it.c)}" data-f="${Math.round(it.f)}">
-          <span class="food-name">${escapeHtml(it.name)}</span>
-          <span class="food-detail">${Math.round(it.grams)} ${it.unite === 'ml' ? 'ml' : 'g'}${it.code ? `
-            <button class="chip-code" data-code="${escapeHtml(String(it.code))}" onclick="event.stopPropagation(); copierCode(this.dataset.code, this)"
-                    title="Code-barres OpenFoodFacts — toucher pour copier"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="9" y2="9" /><line x1="4" x2="20" y1="15" y2="15" /><line x1="10" x2="8" y1="3" y2="21" /><line x1="16" x2="14" y1="3" y2="21" /></svg> ${escapeHtml(String(it.code))}</button>` : ''}</span>
-          <div class="food-macros">
-            <span class="tag-p">P ${Math.round(it.p)}g</span>
-            <span class="tag-c">G ${Math.round(it.c)}g</span>
-            <span class="tag-f">L ${Math.round(it.f)}g</span>
+        <div class="food-item-ligne">
+          <div class="food-info" onclick="ouvrirPoidsAliment(this)"
+               data-meal="${mealId}" data-index="${i}" data-grams="${Number(it.grams) || 0}"
+               data-nom="${escapeHtml(it.name)}" data-kcal="${Math.round(it.kcal)}"
+               data-p="${Math.round(it.p)}" data-c="${Math.round(it.c)}" data-f="${Math.round(it.f)}">
+            <span class="food-name">${escapeHtml(it.name)}</span>
+            <span class="food-detail">${Math.round(it.grams)} ${it.unite === 'ml' ? 'ml' : 'g'}${it.code ? `
+              <button class="chip-code" data-code="${escapeHtml(String(it.code))}" onclick="event.stopPropagation(); copierCode(this.dataset.code, this)"
+                      title="Code-barres OpenFoodFacts — toucher pour copier"><svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="9" y2="9" /><line x1="4" x2="20" y1="15" y2="15" /><line x1="10" x2="8" y1="3" y2="21" /><line x1="16" x2="14" y1="3" y2="21" /></svg> ${escapeHtml(String(it.code))}</button>` : ''}</span>
+            <div class="food-macros">
+              <span class="tag-p">P ${Math.round(it.p)}g</span>
+              <span class="tag-c">G ${Math.round(it.c)}g</span>
+              <span class="tag-f">L ${Math.round(it.f)}g</span>
+            </div>
           </div>
-        </div>
-        <div class="food-right">
-          <span class="food-kcal">${Math.round(it.kcal)} kcal</span>
-          <button class="btn-delete" onclick="supprimerAliment('${mealId}', ${i})" aria-label="Supprimer">&times;</button>
-        </div>
-      </li>`).join('') : `<li class="food-item"><span class="food-detail">Aucun aliment ajouté.</span></li>`;
+          <div class="food-right">
+            <span class="food-kcal">${Math.round(it.kcal)} kcal</span>
+            <button class="btn-delete" onclick="supprimerAliment('${mealId}', ${i})" aria-label="Supprimer">&times;</button>
+          </div>
+        </div>${blocIngredients}
+      </li>`;
+    }).join('') : `<li class="food-item"><span class="food-detail">Aucun aliment ajouté.</span></li>`;
     const totalMeal = mealKcal(day, mealId);
 
     return `
@@ -5217,10 +5245,18 @@ function loguerPortionRecettePerso(id, mealIdCible) {
   const r = recettesPerso.find(x => x.id === id);
   if (!r) return;
   const t = totauxRecettePerso(r);
-  addItemToMeal(mealIdCible || activeMealId || repasDuMoment(), {
+  const item = {
     name: r.nom, grams: Math.round(t.grammesParPortion) || 100, unite: 'g',
     kcal: t.parPortionKcal, p: t.parPortionP, c: t.parPortionC, f: t.parPortionF
-  });
+  };
+  // Instantané des ingrédients au moment de l'ajout (jamais une référence
+  // vers la recette) : si elle est modifiée ou supprimée plus tard, ce qui
+  // a déjà été mangé ce jour-là ne doit pas changer rétroactivement.
+  if (r.ingredients && r.ingredients.length) {
+    item.ingredients = r.ingredients.map(ing =>
+      `${ing.nom} — ${Math.round((Number(ing.grammes) || 0) / t.portions)} g`);
+  }
+  addItemToMeal(mealIdCible || activeMealId || repasDuMoment(), item);
 }
 
 function ouvrirCreationRecettePerso(idExistant) {
