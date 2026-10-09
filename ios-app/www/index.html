@@ -10796,7 +10796,7 @@ function trouverExercice(id) { return toutesLesExercices().find(e => e.id === id
    cherchables. Les exercices personnalisés n'ont pas de traduction. */
 function libelleExercice(exo) {
   if (!exo) return 'Exercice';
-  return exo.nomEn ? exo.nom + ' (' + exo.nomEn + ')' : exo.nom;
+  return exo.nom;
 }
 
 /* =====================================================================
