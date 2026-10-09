@@ -6095,7 +6095,7 @@ async function chercherRecettesMacros(typeRepas) {
   // petit-déjeuner. MEAL_LABELS est déjà utilisé pour les repas eux-mêmes.
   const libelleRepas = (typeRepas && MEAL_LABELS[typeRepas]) ? MEAL_LABELS[typeRepas].replace(/^\S+\s/, '') : null;
 
-  const prompt = `Tu es un coach nutrition. Propose 2 idées de${libelleRepas ? ' ' + libelleRepas.toLowerCase() : ' repas ou collations'} simples et rapides à préparer, en français, sans markdown, pour aider la personne à se rapprocher de ses objectifs nutritionnels du jour sans les dépasser. Pour chaque idée : un nom, les ingrédients principaux avec quantités approximatives, et une estimation kcal/protéines/glucides/lipides.
+  const prompt = `Tu es un coach nutrition. Propose 2 idées de${libelleRepas ? ' ' + libelleRepas.toLowerCase() : ' repas ou collations'} simples et rapides à préparer, en français, pour aider la personne à se rapprocher de ses objectifs nutritionnels du jour sans les dépasser. Réponds UNIQUEMENT un tableau JSON (sans texte autour), un objet par idée : {"nom": string, "kcal": number, "p": number (protéines en g), "c": number (glucides en g), "f": number (lipides en g), "ingredients": array de strings — un ingrédient principal par élément, avec sa quantité approximative (ex. "150 g de blanc de poulet")}.
 
 Objectif du jour : ${t.goal}.
 Il reste à consommer aujourd'hui : ${reste.kcal} kcal, dont ${reste.p}g de protéines, ${reste.c}g de glucides, ${reste.f}g de lipides.`;
@@ -6103,11 +6103,53 @@ Il reste à consommer aujourd'hui : ${reste.kcal} kcal, dont ${reste.p}g de prot
   try {
     const res = await geminiGenerate([{ text: prompt }]);
     loader.classList.add('hidden');
-    box.textContent = res.trim(); box.classList.remove('hidden');
+    const recettes = parseJsonArray(res);
+    if (!recettes || !recettes.length) {
+      // Repli si Gemini n'a pas renvoyé un JSON exploitable : au moins
+      // montrer sa réponse brute plutôt que de faire disparaître l'idée.
+      box.textContent = res.trim();
+      box.classList.remove('hidden');
+      return;
+    }
+    dernieresIdeesRecettes = recettes;
+    ideeRecetteDerouleeIndex = null;
+    renderIdeesRecettes();
   } catch (e) {
     loader.classList.add('hidden');
     box.textContent = messageIA(e); box.classList.remove('hidden');
   }
+}
+/* Idées de repas suggérées par l'IA : nom + macros visibles d'emblée, le
+   détail des ingrédients replié derrière un bouton — même principe que les
+   paliers d'un dégressif en séance ou le détail d'une recette enregistrée
+   (voir renderChoixRecette), pour ne pas noyer deux suggestions sous un
+   pavé de texte dès l'arrivée. */
+let dernieresIdeesRecettes = [];
+let ideeRecetteDerouleeIndex = null;
+function renderIdeesRecettes() {
+  const box = document.getElementById('recette-box');
+  box.innerHTML = dernieresIdeesRecettes.map((r, i) => {
+    const ingredients = Array.isArray(r.ingredients) ? r.ingredients : [];
+    const ouvert = ideeRecetteDerouleeIndex === i;
+    const lignesIngredients = ouvert
+      ? `<div class="choix-recette-ingredients">${ingredients.map(ing => `<div>${escapeHtml(String(ing))}</div>`).join('')}</div>`
+      : '';
+    return `<div class="choix-recette-carte">
+      <div class="off-suggestion" style="cursor:default;">
+        <div class="off-nom">${escapeHtml(r.nom || 'Idée de repas')}</div>
+        <div class="off-meta">${Math.round(Number(r.kcal) || 0)} kcal · P ${Math.round(Number(r.p) || 0)}g · G ${Math.round(Number(r.c) || 0)}g · L ${Math.round(Number(r.f) || 0)}g</div>
+      </div>
+      <button type="button" class="serie-paliers-toggle ${ouvert ? 'ouvert' : ''}" aria-expanded="${ouvert}" onclick="basculerIdeeRecette(${i})">
+        <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        ${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}
+      </button>${lignesIngredients}
+    </div>`;
+  }).join('');
+  box.classList.remove('hidden');
+}
+function basculerIdeeRecette(i) {
+  ideeRecetteDerouleeIndex = ideeRecetteDerouleeIndex === i ? null : i;
+  renderIdeesRecettes();
 }
 async function lancerAnalysePeriode() {
   if (!geminiKey) { alert('Ajoute ta clé API Gemini dans Profil.'); return; }
