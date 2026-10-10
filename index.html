@@ -39,6 +39,22 @@
     })();
   </script>
   <title>Anqā — nutrition, activité &amp; musculation</title>
+  <!-- Sans ces balises, l'aperçu de lien (iMessage, WhatsApp...) improvise à
+       partir du seul <title> ci-dessus — d'où le "Anqā —" qui disparaissait
+       et aucune image. Ici le texte et l'image affichés sont fixés
+       explicitement. og-image.png est l'icône de l'app (déjà intégrée en
+       base64 dans le manifest ci-dessous) exportée en fichier séparé : un
+       aperçu de lien télécharge l'image à son URL, il ne lit jamais le JSON
+       du manifest ni n'exécute de JS. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Anqā">
+  <meta property="og:description" content="Suivi nutrition, activité et musculation, en ligne comme hors ligne.">
+  <meta property="og:image" content="https://anqa.netlify.app/og-image.png">
+  <meta property="og:url" content="https://anqa.netlify.app/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Anqā">
+  <meta name="twitter:description" content="Suivi nutrition, activité et musculation, en ligne comme hors ligne.">
+  <meta name="twitter:image" content="https://anqa.netlify.app/og-image.png">
   <!-- Plus de media query ici : la couleur de la barre du navigateur suit
        désormais le thème choisi DANS l'appli (clair par défaut, sombre
        explicitement), pas le thème du système — voir le script tout en bas
