@@ -14403,13 +14403,30 @@ async function chargerExercicesAdmin() {
   try {
     const { data, error } = await supa.from('exercices_perso_musculation').select('id,utilisateur,donnees,maj');
     if (error) throw error;
-    const persoEtCommunaute = (data || []).map(r => ({
-      id: r.id,
-      utilisateur: r.utilisateur,
-      email: (adminComptes[r.utilisateur] && adminComptes[r.utilisateur].email) || String(r.utilisateur).slice(0, 8),
-      maj: r.maj,
-      estBase: false,
-      ...r.donnees
+    /* Un même exercice perso peut exister sous le même id chez plusieurs
+       comptes à la fois (ex: plusieurs membres de la famille ayant importé
+       le même historique Strong/SmartWorkout — chacun obtient sa propre
+       ligne, la clé primaire étant (utilisateur, id)). Sans regroupement,
+       la liste admin affichait une carte PAR COMPTE pour le même exercice,
+       donnant l'illusion d'autant de doublons distincts. On ne garde ici
+       qu'une carte par id, en mémorisant tous les comptes concernés
+       (utilisée par supprimerExerciceAdmin pour tomber chacun d'eux). */
+    const parId = new Map();
+    (data || []).forEach(r => {
+      if (!parId.has(r.id)) {
+        parId.set(r.id, Object.assign({ id: r.id, maj: r.maj, estBase: false, comptes: [r.utilisateur] }, r.donnees));
+      } else {
+        const existant = parId.get(r.id);
+        existant.comptes.push(r.utilisateur);
+        if (Number(r.maj) > Number(existant.maj)) Object.assign(existant, r.donnees, { maj: r.maj, comptes: existant.comptes });
+      }
+    });
+    const persoEtCommunaute = Array.from(parId.values()).map(e => ({
+      ...e,
+      utilisateur: e.comptes[0],
+      email: e.comptes.length > 1
+        ? e.comptes.length + ' comptes'
+        : (adminComptes[e.comptes[0]] && adminComptes[e.comptes[0]].email) || String(e.comptes[0]).slice(0, 8)
     }));
     const base = EXERCICES_BASE.map(e => ({
       id: e.id, nom: e.nom, nomEn: e.nomEn, groupe: e.groupe,
@@ -14605,23 +14622,29 @@ async function sauvegarderEditionExerciceAdmin() {
 
 async function supprimerExerciceAdmin(exo) {
   if (!supa || exo.estBase) return;
-  if (!confirm('Supprimer « ' + (exo.nom || 'cet exercice') + ' » ?\n\nIl disparaîtra de la bibliothèque pour tous les utilisateurs (son créateur y compris), mais son historique de séances déjà enregistré restera intact.')) return;
+  const comptes = Array.isArray(exo.comptes) && exo.comptes.length ? exo.comptes : (exo.utilisateur ? [exo.utilisateur] : []);
+  const texteComptes = comptes.length > 1 ? `, chez les ${comptes.length} comptes qui l'ont` : '';
+  if (!confirm('Supprimer « ' + (exo.nom || 'cet exercice') + ' » ?\n\nIl disparaîtra de la bibliothèque pour tous les utilisateurs' + texteComptes + ', mais son historique de séances déjà enregistré restera intact.')) return;
 
   try {
+    // Un même id peut exister chez plusieurs comptes (voir chargerExercicesAdmin) :
+    // filtrer seulement par id supprime la ligne de CHACUN d'un coup, ce qui est
+    // le but (un seul exercice logique, pas un par compte).
     const { error } = await supa.from('exercices_perso_musculation').delete().eq('id', exo.id);
     if (error) throw error;
 
-    // Empêche la résurrection de l'exercice au prochain appareil du créateur
-    // qui synchronise (voir appliquerTombstonesExercicesPerso) — sans ça,
-    // sa copie locale, ne trouvant plus la ligne côté serveur, serait
-    // repoussée comme une création jamais encore envoyée.
-    if (exo.utilisateur) {
+    // Empêche la résurrection de l'exercice au prochain appareil de CHAQUE
+    // compte qui l'avait, pas seulement le premier (voir
+    // appliquerTombstonesExercicesPerso) — sans un tombstone par compte, la
+    // synchro des comptes non tombstonés, ne trouvant plus leur ligne côté
+    // serveur, la repousserait comme une création jamais encore envoyée.
+    if (comptes.length) {
       const { error: errTomb } = await supa.from('exercices_perso_tombstones')
-        .upsert({ utilisateur: exo.utilisateur, id: exo.id }, { onConflict: 'utilisateur,id' });
+        .upsert(comptes.map(u => ({ utilisateur: u, id: exo.id })), { onConflict: 'utilisateur,id' });
       if (errTomb) console.warn('[Exercices] tombstone non enregistré :', errTomb.message);
     }
 
-    await consignerAction('exercice_supprime', exo.id, exo.nom || '', null, { createur: exo.email || null });
+    await consignerAction('exercice_supprime', exo.id, exo.nom || '', null, { createur: exo.email || null, comptes: comptes.length });
     await chargerExercicesAdmin();
   } catch (e) {
     alert('Suppression impossible : ' + e.message);
