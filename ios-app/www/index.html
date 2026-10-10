@@ -14665,6 +14665,27 @@ function ouvrirFusionExercice(exo) {
 // loguées n'est volontairement pas touché : c'est un instantané figé au
 // moment de la séance (même principe que les ingrédients de recette), pas
 // une référence vivante à retraduire.
+// Redirige les entrées d'une liste d'exercices (programme ou séance) de
+// idSource vers idCible. Si une même liste contient DÉJÀ une entrée idCible
+// (ex: une séance où la personne a loggé les deux exercices séparément, ou
+// un doublon idSource apparu deux fois dans la même séance), les séries des
+// deux entrées sont fusionnées dans une seule plutôt que de laisser deux
+// lignes avec le même exerciceId — qui fausserait l'affichage et le volume
+// compté pour cette séance.
+function fusionnerEntreesExercices(exercices, idSource, idCible) {
+  const resultat = [];
+  exercices.forEach(x => {
+    const idEffectif = x.exerciceId === idSource ? idCible : x.exerciceId;
+    const existant = idEffectif === idCible ? resultat.find(r => r.exerciceId === idCible) : null;
+    if (existant) {
+      existant.series = (existant.series || []).concat(x.series || []);
+    } else {
+      resultat.push(idEffectif === x.exerciceId ? x : Object.assign({}, x, { exerciceId: idEffectif }));
+    }
+  });
+  return resultat;
+}
+
 async function fusionnerExercicesAdmin(idSource, idCible) {
   if (!supa || !idSource || !idCible || idSource === idCible) return;
   const source = adminExercicesCharges.find(e => e.id === idSource);
@@ -14672,38 +14693,60 @@ async function fusionnerExercicesAdmin(idSource, idCible) {
   const nomSource = (source && source.nom) || idSource;
   const nomCible = (cible && cible.nom) || idCible;
 
-  if (!confirm(`Transférer « ${nomSource} » vers « ${nomCible} » ?\n\nTous les programmes de tous les comptes qui utilisent « ${nomSource} » seront mis à jour pour utiliser « ${nomCible} » à la place. L'historique des séances déjà loguées n'est pas modifié.`)) return;
+  if (!confirm(`Transférer « ${nomSource} » vers « ${nomCible} » ?\n\nTous les programmes ET l'historique des séances de tous les comptes qui utilisent « ${nomSource} » seront mis à jour pour utiliser « ${nomCible} » à la place (rien n'est supprimé, seule la référence change).`)) return;
 
   try {
-    const { data, error } = await supa.from('programmes_musculation').select('utilisateur,id,donnees,maj');
-    if (error) throw error;
+    // --- Programmes ---
+    const { data: programmes, error: errProg } = await supa.from('programmes_musculation').select('utilisateur,id,donnees,maj');
+    if (errProg) throw errProg;
 
-    const aMettreAJour = [];
-    (data || []).forEach(r => {
+    const programmesAMettreAJour = [];
+    (programmes || []).forEach(r => {
       const exercices = r.donnees && r.donnees.exercices;
-      if (!Array.isArray(exercices)) return;
-      let touche = false;
-      const nouveauxExercices = exercices.map(pe => {
-        if (pe.exerciceId === idSource) { touche = true; return Object.assign({}, pe, { exerciceId: idCible }); }
-        return pe;
+      if (!Array.isArray(exercices) || !exercices.some(pe => pe.exerciceId === idSource)) return;
+      programmesAMettreAJour.push({
+        utilisateur: r.utilisateur, id: r.id,
+        donnees: Object.assign({}, r.donnees, { exercices: fusionnerEntreesExercices(exercices, idSource, idCible) }),
+        maj: Date.now()
       });
-      if (touche) {
-        aMettreAJour.push({
-          utilisateur: r.utilisateur, id: r.id,
-          donnees: Object.assign({}, r.donnees, { exercices: nouveauxExercices }),
-          maj: Date.now()
-        });
-      }
     });
-
-    for (let i = 0; i < aMettreAJour.length; i += 200) {
-      const { error: errMaj } = await supa.from('programmes_musculation')
-        .upsert(aMettreAJour.slice(i, i + 200), { onConflict: 'utilisateur,id' });
-      if (errMaj) throw errMaj;
+    for (let i = 0; i < programmesAMettreAJour.length; i += 200) {
+      const { error } = await supa.from('programmes_musculation').upsert(programmesAMettreAJour.slice(i, i + 200), { onConflict: 'utilisateur,id' });
+      if (error) throw error;
     }
 
-    await consignerAction('exercice_fusionne', idSource, nomSource, null, { cible: idCible, cible_nom: nomCible, programmes_modifies: aMettreAJour.length });
-    alert(`Fait : ${aMettreAJour.length} programme(s) mis à jour. « ${nomSource} » peut maintenant être supprimé en toute sécurité.`);
+    // --- Historique (séances déjà loguées) ---
+    const { data: seances, error: errSea } = await supa.from('seances_musculation').select('utilisateur,id,donnees,maj');
+    if (errSea) throw errSea;
+
+    const seancesAvecSource = (seances || []).filter(r => Array.isArray(r.donnees && r.donnees.exercices) && r.donnees.exercices.some(x => x.exerciceId === idSource));
+    let seancesMiseAJour = 0;
+
+    if (seancesAvecSource.length) {
+      const cibleADejaHistorique = (seances || []).some(r => Array.isArray(r.donnees && r.donnees.exercices) && r.donnees.exercices.some(x => x.exerciceId === idCible));
+      const continuer = !cibleADejaHistorique || confirm(
+        `« ${nomCible} » a déjà de l'historique enregistré.\n\n` +
+        `Transférer aussi l'historique de « ${nomSource} » (${seancesAvecSource.length} séance(s) concernée(s)) va FUSIONNER les deux sous « ${nomCible} » : rien n'est supprimé, mais à partir de maintenant ces séances compteront ensemble (dernière performance, progression affichée pour cet exercice).\n\nContinuer ?`
+      );
+      if (continuer) {
+        const seancesAMettreAJour = seancesAvecSource.map(r => ({
+          utilisateur: r.utilisateur, id: r.id,
+          donnees: Object.assign({}, r.donnees, { exercices: fusionnerEntreesExercices(r.donnees.exercices, idSource, idCible) }),
+          maj: Date.now()
+        }));
+        for (let i = 0; i < seancesAMettreAJour.length; i += 200) {
+          const { error } = await supa.from('seances_musculation').upsert(seancesAMettreAJour.slice(i, i + 200), { onConflict: 'utilisateur,id' });
+          if (error) throw error;
+        }
+        seancesMiseAJour = seancesAMettreAJour.length;
+      }
+    }
+
+    await consignerAction('exercice_fusionne', idSource, nomSource, null, {
+      cible: idCible, cible_nom: nomCible,
+      programmes_modifies: programmesAMettreAJour.length, seances_modifiees: seancesMiseAJour
+    });
+    alert(`Fait : ${programmesAMettreAJour.length} programme(s) et ${seancesMiseAJour} séance(s) d'historique mis à jour. « ${nomSource} » peut maintenant être supprimé en toute sécurité.`);
   } catch (e) {
     alert('Transfert impossible : ' + e.message);
   }
