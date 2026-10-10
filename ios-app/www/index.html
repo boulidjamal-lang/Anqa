@@ -5866,8 +5866,13 @@ async function chercherProduitOFFParCode(code) {
       // même pour une eau minérale scannée, dont le 0 est parfaitement exact.
       const kcalBrut = n['energy-kcal_100g'] !== undefined ? n['energy-kcal_100g']
         : (n['energy_100g'] !== undefined ? n['energy_100g'] / 4.184 : undefined);
+      // OpenFoodFacts garde le nom dans la langue d'origine du contributeur
+      // (product_name) en plus de versions traduites par langue
+      // (product_name_fr, product_name_en...) quand elles existent. Sans
+      // préférer le français, un produit enregistré par ex. en néerlandais
+      // s'affichait tel quel ("Kok'o handgekookte gepelde eieren").
       trouve = {
-        name: p.product_name || 'Produit ' + code,
+        name: p.product_name_fr || p.product_name || 'Produit ' + code,
         code,
         marque: (p.brands || '').split(',')[0].trim(),
         kcal100: Math.round(kcalBrut || 0),
