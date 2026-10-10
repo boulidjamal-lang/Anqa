@@ -14448,19 +14448,20 @@ async function sauvegarderEditionAliment() {
   }
 }
 
-/* Suppression douce : la ligne reste en base, traçable. */
+/* Suppression définitive : la ligne ne doit plus exister en base, pour ne
+   plus jamais ressortir d'une recherche — la traçabilité vient de
+   consignerAction() ci-dessous (journal admin), pas d'avoir gardé la ligne.
+   Avant, un simple flag "supprime" laissait la ligne en place ; la fonction
+   SQL de recherche (chercher_aliments) ne le filtrait pas, donc l'aliment
+   continuait d'apparaître pour tout le monde malgré la suppression. */
 async function supprimerAlimentPartage(aliment) {
   if (!supa) return;
-  if (!confirm('Supprimer « ' + (aliment.nom || 'cet aliment') + ' » ?\n\nIl disparaîtra de la recherche pour tous les utilisateurs.')) return;
+  if (!confirm('Supprimer « ' + (aliment.nom || 'cet aliment') + ' » ?\n\nIl disparaîtra définitivement de la recherche pour tous les utilisateurs.')) return;
 
   try {
     const { error } = await supa
       .from('aliments_partages')
-      .update({
-        supprime: true,
-        supprime_par: sessionUtilisateur ? sessionUtilisateur.email : 'inconnu',
-        supprime_le: new Date().toISOString()
-      })
+      .delete()
       .eq('id', aliment.id);
     if (error) throw error;
 
