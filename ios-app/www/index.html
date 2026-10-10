@@ -2349,6 +2349,9 @@
       <button class="btn btn-primary" type="button" onclick="afficherFeuillExercicesAdmin()">
         <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z" /><path d="m2.5 21.5 1.4-1.4" /><path d="m20.1 3.9 1.4-1.4" /><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z" /><path d="m9.6 14.4 4.8-4.8" /></svg> Bibliothèque d'exercices
       </button>
+      <button class="btn btn-primary" type="button" onclick="afficherFeuillRecettesAdmin()">
+        <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11h18" /><path d="M12 3c-1.5 2-2 4-2 5.5A2 2 0 0 0 12 11a2 2 0 0 0 2-2.5c0-1.5-.5-3.5-2-5.5Z" /><path d="M3 11c0 6 3.5 10 9 10s9-4 9-10" /></svg> Recettes
+      </button>
       <button class="btn btn-primary" type="button" onclick="afficherFeuilleCouleursAdmin()">
         <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" /><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /></svg> Couleurs de l'application
       </button>
@@ -2966,6 +2969,25 @@
     </div>
 
     <div id="admin-exercices-feuille-liste"></div>
+  </div>
+</div>
+
+<!-- ============ FEUILLE : recettes personnelles (admin) ============ -->
+<div class="feuille" id="feuille-admin-recettes" role="dialog" aria-modal="true" aria-labelledby="feuille-admin-recettes-titre">
+  <div class="feuille-contenu">
+    <div class="feuille-poignee"></div>
+    <div class="feuille-entete">
+      <div class="feuille-titre" id="feuille-admin-recettes-titre">Recettes</div>
+      <button class="feuille-fermer" type="button" onclick="fermerFeuilles()" aria-label="Fermer">&times;</button>
+    </div>
+    <p class="note" style="margin-top:-4px;">Recettes créées par chaque compte — restent propres à leur créateur. Vue en lecture seule, pour décider au cas par cas si l'une d'elles mérite de rejoindre une base partagée plus tard.</p>
+
+    <div class="aliments-filtres">
+      <input type="text" id="recettes-filter-nom" placeholder="Nom de la recette" oninput="filtrerRecettesAdmin()" autocomplete="off">
+      <input type="text" id="recettes-filter-createur" placeholder="Email du créateur" oninput="filtrerRecettesAdmin()" autocomplete="off">
+    </div>
+
+    <div id="admin-recettes-feuille-liste"></div>
   </div>
 </div>
 
@@ -10540,6 +10562,25 @@ create policy "tombstones ecriture admin" on exercices_perso_tombstones
   using (auth.jwt() ->> 'email' = 'jambou592@gmail.com')
   with check (auth.jwt() ->> 'email' = 'jambou592@gmail.com');
 
+-- Recettes personnelles : contrairement aux exercices perso, restent
+-- PRIVÉES à leur créateur (jamais visibles des autres comptes dans
+-- l'appli) — seul l'admin peut toutes les voir, depuis le panneau
+-- Administration, pour décider au cas par cas si l'une d'elles doit
+-- un jour rejoindre une base de recettes partagées.
+create table if not exists public.recettes_perso (
+  utilisateur text not null,
+  id          text not null,
+  donnees     jsonb not null,
+  maj         bigint not null default 0,
+  primary key (utilisateur, id)
+);
+alter table recettes_perso enable row level security;
+drop policy if exists "recettes_perso par compte" on recettes_perso;
+create policy "recettes_perso par compte" on recettes_perso
+  for all
+  using ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com')
+  with check ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
+
 -- Important : ces policies exigent d'être connecté (auth.uid() non nul).
 -- Si l'un de vous continue à utiliser l'identifiant libre sans jamais se
 -- connecter, ses lectures/écritures échoueront après ce script — dans ce
@@ -14767,6 +14808,87 @@ async function fusionnerExercicesAdmin(idSource, idCible) {
   } catch (e) {
     alert('Transfert impossible : ' + e.message);
   }
+}
+
+/* =====================================================================
+   ADMIN — RECETTES PERSONNELLES
+   Vue en lecture seule de toutes les recettes créées par tous les
+   comptes (table recettes_perso) : chacune reste propre à son créateur,
+   jamais partagée automatiquement — ce panneau sert juste à les
+   parcourir pour décider au cas par cas si l'une d'elles mérite de
+   rejoindre une base de recettes partagées, le jour où elle existera.
+   ===================================================================== */
+let adminRecettesCharges = [];
+let adminRecettesAffichees = [];
+let recetteAdminDerouleeId = null;
+let minuteurFiltreRecettes = null;
+
+async function afficherFeuillRecettesAdmin() {
+  ['recettes-filter-nom', 'recettes-filter-createur'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  recetteAdminDerouleeId = null;
+  ouvrirFeuille('feuille-admin-recettes');
+  await chargerRecettesAdmin();
+}
+
+async function chargerRecettesAdmin() {
+  const conteneur = document.getElementById('admin-recettes-feuille-liste');
+  if (!conteneur) return;
+  conteneur.innerHTML = '<p class="note">Chargement…</p>';
+  if (!supa) { conteneur.innerHTML = '<p class="note">Pas de connexion à Supabase.</p>'; return; }
+  try {
+    const { data, error } = await supa.from('recettes_perso').select('id,utilisateur,donnees,maj');
+    if (error) throw error;
+    adminRecettesCharges = (data || []).map(r => Object.assign({
+      utilisateur: r.utilisateur,
+      email: (adminComptes[r.utilisateur] && adminComptes[r.utilisateur].email) || String(r.utilisateur).slice(0, 8),
+      maj: r.maj
+    }, r.donnees, { id: r.id }));
+    filtrerRecettesAdmin();
+  } catch (e) {
+    conteneur.innerHTML = '<p class="note">Chargement impossible : ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+function filtrerRecettesAdmin() {
+  clearTimeout(minuteurFiltreRecettes);
+  minuteurFiltreRecettes = setTimeout(() => {
+    const nom = normaliserRecherche(document.getElementById('recettes-filter-nom')?.value || '');
+    const createur = normaliserRecherche(document.getElementById('recettes-filter-createur')?.value || '');
+    adminRecettesAffichees = adminRecettesCharges.filter(r => {
+      if (nom && !normaliserRecherche(r.nom || '').includes(nom)) return false;
+      if (createur && !normaliserRecherche(r.email || '').includes(createur)) return false;
+      return true;
+    });
+    rendreRecettesAdmin();
+  }, 250);
+}
+
+function rendreRecettesAdmin() {
+  const conteneur = document.getElementById('admin-recettes-feuille-liste');
+  if (!conteneur) return;
+  if (!adminRecettesAffichees.length) { conteneur.innerHTML = '<p class="note">Aucune recette ne correspond.</p>'; return; }
+  conteneur.innerHTML = `<p class="note">${adminRecettesAffichees.length} recette(s)</p>` + adminRecettesAffichees.map(r => {
+    const t = totauxRecettePerso(r);
+    const ouvert = recetteAdminDerouleeId === r.id;
+    const ingredients = r.ingredients || [];
+    return `<div class="admin-aliment-card">
+      <div class="aliment-header">
+        <div class="aliment-info">
+          <strong>${escapeHtml(r.nom || 'Sans nom')}</strong>
+          <small>${escapeHtml(r.email)} · ${Math.round(t.parPortionKcal)} kcal/portion · P ${Math.round(t.parPortionP)}g · G ${Math.round(t.parPortionC)}g · L ${Math.round(t.parPortionF)}g · ${r.portions || 1} portion(s)</small>
+        </div>
+      </div>
+      <button type="button" class="serie-paliers-toggle ${ouvert ? 'ouvert' : ''}" aria-expanded="${ouvert}" onclick="basculerRecetteAdmin('${r.id}')">
+        <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        ${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}
+      </button>${ouvert ? `<div class="choix-recette-ingredients">${ingredients.map(ing => `<div>${escapeHtml(ing.nom)} — ${Math.round(Number(ing.grammes) || 0)} g</div>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function basculerRecetteAdmin(id) {
+  recetteAdminDerouleeId = recetteAdminDerouleeId === id ? null : id;
+  rendreRecettesAdmin();
 }
 
 /* =====================================================================
