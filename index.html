@@ -4927,7 +4927,7 @@ function afficherSuggestionsOFF(products, probleme) {
       if (p.fois > 1) meta += ' · ' + p.fois + '×';
     }
     // Confidentialité : on indique la provenance, jamais l'identité.
-    if (p.source === 'partage') meta += p.est_mien ? ' · mon aliment' : ' · créé par un autre utilisateur';
+    if (p.source === 'partage') meta += p.est_mien ? (p.valide ? ' · mon aliment' : ' · mon aliment, en attente de validation') : ' · créé par un autre utilisateur';
     if (p.code) meta += ' · <svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="9" y2="9" /><line x1="4" x2="20" y1="15" y2="15" /><line x1="10" x2="8" y1="3" y2="21" /><line x1="16" x2="14" y1="3" y2="21" /></svg>' + escapeHtml(p.code);
     bas.innerHTML = meta;
     el.appendChild(bas);
@@ -13897,6 +13897,7 @@ async function chercherAlimentsPartages(q) {
       // La fonction SQL ne renvoie plus d'email : seulement de qui vient
       // l'aliment, sans dire qui. L'identité reste au panneau admin.
       est_mien: !!a.est_mien,
+      valide: !!a.valide,
       cree_le: a.cree_le,
       id: a.id
     }));
@@ -14017,6 +14018,7 @@ function versFormatSuggestion(a) {
     name: a.nom,
     source: a.source === 'usda' ? 'usda' : 'partage',
     est_mien: !!a.est_mien,
+    valide: !!a.valide,
     code: a.code_barre || '',
     nutriments: {
       'energy-kcal_100g': a.kcal100,
@@ -14333,6 +14335,12 @@ function rendreAlimentsAdmin(aliments) {
     info.className = 'aliment-info';
     const nom = document.createElement('strong');
     nom.textContent = a.nom || 'Sans nom';
+    if (!a.valide) {
+      const puce = document.createElement('span');
+      puce.textContent = ' · en attente';
+      puce.style.cssText = 'font-weight:400;color:var(--accent);font-size:0.78rem;';
+      nom.appendChild(puce);
+    }
     const meta = document.createElement('small');
     meta.textContent = (a.createur || 'inconnu')
       + ' · ' + (a.cree_le ? new Date(a.cree_le).toLocaleDateString('fr-FR') : '—')
@@ -14341,6 +14349,11 @@ function rendreAlimentsAdmin(aliments) {
 
     const actions = document.createElement('div');
     actions.className = 'aliment-actions';
+    const btnValider = document.createElement('button');
+    btnValider.className = 'bouton-petit' + (a.valide ? ' danger' : '');
+    btnValider.type = 'button';
+    btnValider.textContent = a.valide ? 'Retirer la validation' : 'Valider pour tous';
+    btnValider.addEventListener('click', () => basculerValidationAlimentAdmin(a));
     const btnEdit = document.createElement('button');
     btnEdit.className = 'bouton-petit';
     btnEdit.type = 'button';
@@ -14353,6 +14366,7 @@ function rendreAlimentsAdmin(aliments) {
     btnSup.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>';
     btnSup.title = 'Supprimer';
     btnSup.addEventListener('click', () => supprimerAlimentPartage(a));
+    actions.appendChild(btnValider);
     actions.appendChild(btnEdit); actions.appendChild(btnSup);
 
     tete.appendChild(info); tete.appendChild(actions);
@@ -14451,9 +14465,11 @@ async function sauvegarderEditionAliment() {
 /* Suppression définitive : la ligne ne doit plus exister en base, pour ne
    plus jamais ressortir d'une recherche — la traçabilité vient de
    consignerAction() ci-dessous (journal admin), pas d'avoir gardé la ligne.
-   Avant, un simple flag "supprime" laissait la ligne en place ; la fonction
-   SQL de recherche (chercher_aliments) ne le filtrait pas, donc l'aliment
-   continuait d'apparaître pour tout le monde malgré la suppression. */
+   Avant, un simple flag "supprime" laissait la ligne en place, en comptant
+   sur une policy RLS "aliments modification" qui n'autorisait que le
+   créateur à écrire (pas de clause admin) : la mise à jour du flag par
+   l'admin échouait silencieusement (0 ligne touchée, pas d'erreur), donc
+   l'aliment restait visible malgré la suppression. */
 async function supprimerAlimentPartage(aliment) {
   if (!supa) return;
   if (!confirm('Supprimer « ' + (aliment.nom || 'cet aliment') + ' » ?\n\nIl disparaîtra définitivement de la recherche pour tous les utilisateurs.')) return;
@@ -14471,6 +14487,34 @@ async function supprimerAlimentPartage(aliment) {
     await chargerAlimentsAdmin();       // la feuille ouverte se met bien à jour
   } catch (e) {
     alert('Suppression impossible : ' + e.message);
+  }
+}
+
+// Rend un aliment créé par un utilisateur visible de tous (ou retire cette
+// validation) : même principe que le partage de recette, un simple drapeau
+// sur sa propre ligne, lu par chercher_aliments pour décider s'il sort dans
+// la recherche de quelqu'un d'autre que son créateur.
+async function basculerValidationAlimentAdmin(aliment) {
+  if (!supa) return;
+  const nouvelEtat = !aliment.valide;
+  const question = nouvelEtat
+    ? `Rendre « ${aliment.nom} » visible dans la recherche de tous les comptes ?`
+    : `Retirer « ${aliment.nom} » de la recherche des autres comptes ? Il restera visible pour son créateur.`;
+  if (!confirm(question)) return;
+
+  try {
+    const { error } = await supa
+      .from('aliments_partages')
+      .update({ valide: nouvelEtat })
+      .eq('id', aliment.id);
+    if (error) throw error;
+
+    cacheVider();
+    await consignerAction(nouvelEtat ? 'aliment_valide' : 'aliment_validation_retiree', aliment.id, aliment.nom || '', null,
+      { createur: aliment.createur || null });
+    await chargerAlimentsAdmin();
+  } catch (e) {
+    alert('Impossible de modifier la validation : ' + e.message);
   }
 }
 
