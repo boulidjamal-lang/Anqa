@@ -10482,6 +10482,8 @@ drop policy if exists "acces exercices_perso_musculation" on exercices_perso_mus
 drop policy if exists "exercices_perso_musculation par compte" on exercices_perso_musculation;
 drop policy if exists "exercices_perso_musculation lecture a tous" on exercices_perso_musculation;
 drop policy if exists "exercices_perso_musculation ecriture par compte" on exercices_perso_musculation;
+drop policy if exists "exercices_perso_musculation modif par compte" on exercices_perso_musculation;
+drop policy if exists "exercices_perso_musculation suppr par compte" on exercices_perso_musculation;
 create policy "exercices_perso_musculation lecture a tous" on exercices_perso_musculation
   for select
   using (true);
