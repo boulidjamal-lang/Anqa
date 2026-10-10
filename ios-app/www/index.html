@@ -10084,6 +10084,15 @@ function ficheDepuisItem(item) {
 }
 
 function enregistrerAlimentDansBase(item) {
+  // Un aliment issu d'une recette (structure en ingrédients, voir
+  // loguerPortionRecettePerso) ne doit jamais rejoindre la base partagée
+  // d'aliments : ce n'est pas un aliment unique mais un total de plusieurs
+  // ingrédients à un grammage précis, et les recettes elles-mêmes restent
+  // propres à chaque compte (table recettes_perso, jamais partagée). Sans
+  // ce garde-fou, loguer une recette l'enregistrait quand même comme un
+  // simple "aliment" visible par tous les autres comptes, sous son nom de
+  // recette — exactement ce qu'on veut éviter.
+  if (item && Array.isArray(item.ingredients) && item.ingredients.length) return;
   const fiche = ficheDepuisItem(item);
   if (!fiche) return;
   const file = fileAliments();
