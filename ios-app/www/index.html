@@ -9915,7 +9915,15 @@ async function synchroniser(raison) {
       appliquerGeminiKeyEffective();
       majUIWithings();
       changementLocal = true;
-    } else if (!rp.data || majProfilLocal > (Number(rp.data.maj) || 0)) {
+    // userProfile.onboarding exigé ici : sans ça, la toute première synchro
+    // d'un compte tout neuf (aucune ligne "profil" côté serveur) poussait le
+    // profil par défaut codé en dur (homme/25 ans/175 cm) comme s'il
+    // s'agissait de vraies données — AVANT même que le bilan initial ne se
+    // soit ouvert. Si l'app était fermée juste après avoir répondu au
+    // questionnaire (avant que la synchro suivante parte), ce faux profil
+    // restait enregistré comme définitif. On attend maintenant que le bilan
+    // initial soit réellement passé avant de créer la ligne côté serveur.
+    } else if (userProfile.onboarding && (!rp.data || majProfilLocal > (Number(rp.data.maj) || 0))) {
       const { error: e3 } = await supa.from('profil')
         .upsert([{ utilisateur: id, donnees: userProfile, maj: majProfilLocal || 1 }], { onConflict: 'utilisateur' });
       if (e3) throw e3;
