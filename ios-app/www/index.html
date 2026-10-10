@@ -5883,6 +5883,12 @@ async function chercherProduitOFFParCode(code) {
         sansDonneesNutrition: kcalBrut === undefined,
         source: 'OpenFoodFacts'
       };
+      // Pas de product_name_fr disponible : OpenFoodFacts indique souvent la
+      // langue d'origine du nom utilisé (p.lang) — assez pour demander une
+      // traduction ciblée plutôt que de laisser le nom tel quel.
+      if (!p.product_name_fr && p.product_name && p.lang && p.lang !== 'fr') {
+        trouve.name = await traduireVersFrancais(p.product_name, p.lang);
+      }
     }
   } catch (e) { /* réseau indisponible : on continue quand même vers ce qu'on a déjà */ }
 
@@ -13867,6 +13873,42 @@ window.addEventListener('load', () => {
 const CACHE_TTL_MS = 60000;                 // 60 s
 const cachePartages = new Map();            // requête -> { t, data }
 const cacheUSDA = new Map();                // requête -> résultats USDA
+const cacheTraductions = new Map();         // "en:nom original" -> nom traduit
+
+/* Traduit un nom d'aliment vers le français via MyMemory (service public,
+   gratuit, sans clé à configurer — même principe que les autres API déjà
+   utilisées dans l'app). Mise en cache par terme pour ne jamais retraduire
+   deux fois le même aliment. Ne bloque jamais la recherche : en cas d'échec
+   (réseau, quota), on retombe simplement sur le texte d'origine. */
+async function traduireVersFrancais(texte, langueSource) {
+  if (!texte) return texte;
+  const src = langueSource || 'en';
+  const cle = src + ':' + texte.toLowerCase();
+  if (cacheTraductions.has(cle)) return cacheTraductions.get(cle);
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(texte) + '&langpair=' + src + '|fr';
+    const ctrl = new AbortController();
+    const minuteur = setTimeout(() => ctrl.abort(), 4000);
+    const rep = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(minuteur);
+    if (!rep.ok) throw new Error('HTTP ' + rep.status);
+    const data = await rep.json();
+    const traduit = data && data.responseData && data.responseData.translatedText;
+    // MyMemory répond parfois en 200 OK avec un message de quota dépassé
+    // dans translatedText lui-même ("MYMEMORY WARNING: YOU USED ALL
+    // AVAILABLE..."), au lieu d'une vraie erreur HTTP — sans ce filtre, ce
+    // message se serait affiché tel quel comme nom d'aliment. Un nom
+    // d'aliment ne fait jamais une phrase de ce genre.
+    const succes = data && data.responseStatus === 200;
+    const invalide = !traduit || !succes || traduit.length > 120 || /mymemory|quota|warning/i.test(traduit);
+    const resultat = invalide ? texte : traduit;
+    cacheTraductions.set(cle, resultat);
+    return resultat;
+  } catch (e) {
+    cacheTraductions.set(cle, texte);   // pas de nouvel essai immédiat sur le même terme
+    return texte;
+  }
+}
 
 function cacheLire(cle) {
   const e = cachePartages.get(cle);
@@ -13998,6 +14040,11 @@ async function chercherUSDA(q) {
         createur: ''
       };
     }).filter(a => a.kcal100 > 0);     // une fiche sans calories n'aide personne
+
+    // Noms en anglais par défaut (base américaine) : traduits en parallèle,
+    // en parallèle avec mise en cache par terme — un aliment déjà vu
+    // ailleurs ne repart pas en requête réseau.
+    await Promise.all(aliments.map(async a => { a.nom = await traduireVersFrancais(a.nom, 'en'); }));
 
     cacheUSDA.set(cle, aliments);
     return aliments;
