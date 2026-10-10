@@ -10471,12 +10471,30 @@ create policy "seances_musculation par compte" on seances_musculation
   using ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com')
   with check ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
 
+-- Contrairement aux tables ci-dessus (données privées, visibles seulement
+-- par leur propriétaire), les exercices perso sont une bibliothèque
+-- COMMUNE : chaque compte doit voir les exercices créés par tous les
+-- autres (chargerExercicesCommunaute()), mais ne peut créer/modifier/
+-- supprimer que les siens. Une seule policy "for all" comme les autres
+-- tables restreindrait aussi la LECTURE au propriétaire, ce qui casserait
+-- le partage — d'où la lecture et l'écriture séparées en deux policies.
 drop policy if exists "acces exercices_perso_musculation" on exercices_perso_musculation;
 drop policy if exists "exercices_perso_musculation par compte" on exercices_perso_musculation;
-create policy "exercices_perso_musculation par compte" on exercices_perso_musculation
-  for all
+drop policy if exists "exercices_perso_musculation lecture a tous" on exercices_perso_musculation;
+drop policy if exists "exercices_perso_musculation ecriture par compte" on exercices_perso_musculation;
+create policy "exercices_perso_musculation lecture a tous" on exercices_perso_musculation
+  for select
+  using (true);
+create policy "exercices_perso_musculation ecriture par compte" on exercices_perso_musculation
+  for insert
+  with check ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
+create policy "exercices_perso_musculation modif par compte" on exercices_perso_musculation
+  for update
   using ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com')
   with check ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
+create policy "exercices_perso_musculation suppr par compte" on exercices_perso_musculation
+  for delete
+  using ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
 
 -- Important : ces policies exigent d'être connecté (auth.uid() non nul).
 -- Si l'un de vous continue à utiliser l'identifiant libre sans jamais se
