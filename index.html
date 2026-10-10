@@ -10496,6 +10496,31 @@ create policy "exercices_perso_musculation suppr par compte" on exercices_perso_
   for delete
   using ((utilisateur = auth.uid()::text and not est_bloque(utilisateur) and mon_compte_existe()) or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
 
+-- Quand l'admin supprime l'exercice perso de QUELQU'UN D'AUTRE (panneau
+-- Administration), l'appareil du créateur garde sa propre copie en cache
+-- local tant qu'il n'a pas resynchronisé. Sans ce tombstone, sa prochaine
+-- synchro comparerait sa copie locale à ce qui reste côté serveur, ne la
+-- trouverait plus, et la repousserait comme si c'était une création jamais
+-- encore envoyée — ressuscitant silencieusement l'exercice supprimé. Cette
+-- table mémorise les suppressions faites par l'admin pour que la synchro du
+-- créateur sache qu'il s'agit d'une suppression à respecter, pas à annuler.
+create table if not exists public.exercices_perso_tombstones (
+  utilisateur text not null,
+  id          text not null,
+  supprime_le timestamptz not null default now(),
+  primary key (utilisateur, id)
+);
+alter table exercices_perso_tombstones enable row level security;
+drop policy if exists "tombstones lecture proprietaire" on exercices_perso_tombstones;
+drop policy if exists "tombstones ecriture admin" on exercices_perso_tombstones;
+create policy "tombstones lecture proprietaire" on exercices_perso_tombstones
+  for select
+  using (utilisateur = auth.uid()::text or auth.jwt() ->> 'email' = 'jambou592@gmail.com');
+create policy "tombstones ecriture admin" on exercices_perso_tombstones
+  for all
+  using (auth.jwt() ->> 'email' = 'jambou592@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'jambou592@gmail.com');
+
 -- Important : ces policies exigent d'être connecté (auth.uid() non nul).
 -- Si l'un de vous continue à utiliser l'identifiant libre sans jamais se
 -- connecter, ses lectures/écritures échoueront après ce script — dans ce
@@ -11366,6 +11391,7 @@ let exercicesCommunaute = [];
 let musculationSessionActive = null;
 let programmeEnEdition = null;
 let pickerMode = null;
+let exerciceFusionSourceId = null; // exercice à transférer, voir ouvrirFusionExercice
 // Index (dans musculationSessionActive.exercices) de l'exercice à remplacer,
 // mémorisé le temps que le sélecteur d'exercices soit ouvert en mode
 // 'session-remplacer' — voir remplacerExerciceSession().
@@ -11626,12 +11652,36 @@ async function syncCollectionMusculation(nomTable, utilisateurId, collectionLoca
   return changement;
 }
 
+// Retire du cache local les exercices perso que l'admin a supprimés à
+// distance (voir exercices_perso_tombstones ci-dessus et
+// supprimerExerciceAdmin) : sans ça, la prochaine ligne (syncCollectionMusculation)
+// les reposterait vers le serveur en les prenant pour des créations jamais
+// encore envoyées. Appelée AVANT la synchro de cette collection, pour que
+// l'exercice tombstoné ait déjà disparu de musculationExosPerso quand le
+// calcul des entrées à pousser a lieu.
+async function appliquerTombstonesExercicesPerso(utilisateurId) {
+  if (!supa) return false;
+  try {
+    const { data, error } = await supa.from('exercices_perso_tombstones').select('id').eq('utilisateur', utilisateurId);
+    if (error) throw error;
+    const ids = new Set((data || []).map(r => r.id));
+    if (!ids.size) return false;
+    const avant = musculationExosPerso.length;
+    musculationExosPerso = musculationExosPerso.filter(e => !ids.has(e.id));
+    return musculationExosPerso.length !== avant;
+  } catch (e) {
+    console.warn('[Exercices] tombstones indisponibles :', e.message);
+    return false;
+  }
+}
+
 async function synchroniserMuscu(utilisateurId) {
   await viderSuppressionsMuscu(utilisateurId);
+  const cTomb = await appliquerTombstonesExercicesPerso(utilisateurId);
   const c1 = await syncCollectionMusculation('programmes_musculation', utilisateurId, musculationProgrammes);
   const c2 = await syncCollectionMusculation('seances_musculation', utilisateurId, musculationHistorique);
   const c3 = await syncCollectionMusculation('exercices_perso_musculation', utilisateurId, musculationExosPerso);
-  if (c1 || c2 || c3) {
+  if (c1 || c2 || c3 || cTomb) {
     // L'historique est retrié : le serveur peut avoir apporté une séance
     // plus récente qu'aucune séance locale, qui doit repasser en tête.
     musculationHistorique.sort((a, b) => (Number(b.maj) || 0) - (Number(a.maj) || 0));
@@ -12558,7 +12608,8 @@ function ouvrirPickerExercices(mode) {
   document.getElementById('titre-picker-exercices').innerHTML =
     mode === 'programme' ? '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg> Ajouter un exercice au programme' :
     mode === 'session' ? '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg> Ajouter un exercice à la séance' :
-    mode === 'session-remplacer' ? '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg> Remplacer cet exercice' : '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16" /><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></svg> Bibliothèque d’exercices';
+    mode === 'session-remplacer' ? '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg> Remplacer cet exercice' :
+    mode === 'admin-fusion' ? '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg> Transférer vers…' : '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16" /><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></svg> Bibliothèque d’exercices';
   rendrePickerExercices();
   ouvrirModal('picker-exercices-modal');
 }
@@ -12568,6 +12619,7 @@ function rendrePickerExercices() {
   const groupeActif = document.getElementById('picker-filtre-groupe').value;
   const materielActif = document.getElementById('picker-filtre-materiel').value;
   const liste = toutesLesExercices().filter(e => {
+    if (pickerMode === 'admin-fusion' && e.id === exerciceFusionSourceId) return false;
     if (groupeActif && e.groupe !== groupeActif) return false;
     if (materielActif && e.materiel !== materielActif) return false;
     if (q && !normaliserRecherche(e.nom).includes(q) && !(e.nomEn && normaliserRecherche(e.nomEn).includes(q))) return false;
@@ -12606,6 +12658,9 @@ function choisirExercicePicker(id) {
   } else if (pickerMode === 'session-remplacer') {
     remplacerExerciceSessionConfirme(id);
     fermerModal('picker-exercices-modal');
+  } else if (pickerMode === 'admin-fusion') {
+    fermerModal('picker-exercices-modal');
+    fusionnerExercicesAdmin(exerciceFusionSourceId, id);
   } else {
     afficherFicheExerciceBiblio(id);
   }
@@ -14447,6 +14502,19 @@ function rendreExercicesAdmin(exercices, totalReel) {
     btnEdit.title = 'Modifier';
     btnEdit.addEventListener('click', () => editerExerciceAdmin(exo));
     actions.appendChild(btnEdit);
+
+    // Redirige toutes les occurrences de cet exercice, dans les programmes
+    // de TOUS les comptes, vers un autre exercice choisi — utile pour fondre
+    // un doublon dans l'exercice à garder avant de le supprimer (voir
+    // fusionnerExercicesAdmin) sans casser les programmes qui le référencent.
+    const btnFusion = document.createElement('button');
+    btnFusion.className = 'bouton-petit';
+    btnFusion.type = 'button';
+    btnFusion.innerHTML = '<svg class="icone-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" /></svg>';
+    btnFusion.title = 'Transférer vers un autre exercice';
+    btnFusion.addEventListener('click', () => ouvrirFusionExercice(exo));
+    actions.appendChild(btnFusion);
+
     // Un exercice de la base d'origine ne peut pas être supprimé (il vit
     // dans le code, pas dans une ligne qu'on pourrait effacer) : seule la
     // modification est proposée pour lui.
@@ -14541,10 +14609,78 @@ async function supprimerExerciceAdmin(exo) {
     const { error } = await supa.from('exercices_perso_musculation').delete().eq('id', exo.id);
     if (error) throw error;
 
+    // Empêche la résurrection de l'exercice au prochain appareil du créateur
+    // qui synchronise (voir appliquerTombstonesExercicesPerso) — sans ça,
+    // sa copie locale, ne trouvant plus la ligne côté serveur, serait
+    // repoussée comme une création jamais encore envoyée.
+    if (exo.utilisateur) {
+      const { error: errTomb } = await supa.from('exercices_perso_tombstones')
+        .upsert({ utilisateur: exo.utilisateur, id: exo.id }, { onConflict: 'utilisateur,id' });
+      if (errTomb) console.warn('[Exercices] tombstone non enregistré :', errTomb.message);
+    }
+
     await consignerAction('exercice_supprime', exo.id, exo.nom || '', null, { createur: exo.email || null });
     await chargerExercicesAdmin();
   } catch (e) {
     alert('Suppression impossible : ' + e.message);
+  }
+}
+
+function ouvrirFusionExercice(exo) {
+  exerciceFusionSourceId = exo.id;
+  ouvrirPickerExercices('admin-fusion');
+}
+
+// Fusionne deux fiches exercice qui désignent en fait le même mouvement
+// (doublon venu d'un import, ou créé en double par deux comptes) : redirige
+// toute référence à idSource, dans les PROGRAMMES de tous les comptes (pas
+// seulement celui du créateur), vers idCible — pour que supprimerExerciceAdmin
+// puisse ensuite retirer idSource sans qu'aucun programme n'affiche
+// "Exercice" générique à la place du bon nom. L'historique des séances déjà
+// loguées n'est volontairement pas touché : c'est un instantané figé au
+// moment de la séance (même principe que les ingrédients de recette), pas
+// une référence vivante à retraduire.
+async function fusionnerExercicesAdmin(idSource, idCible) {
+  if (!supa || !idSource || !idCible || idSource === idCible) return;
+  const source = adminExercicesCharges.find(e => e.id === idSource);
+  const cible = adminExercicesCharges.find(e => e.id === idCible);
+  const nomSource = (source && source.nom) || idSource;
+  const nomCible = (cible && cible.nom) || idCible;
+
+  if (!confirm(`Transférer « ${nomSource} » vers « ${nomCible} » ?\n\nTous les programmes de tous les comptes qui utilisent « ${nomSource} » seront mis à jour pour utiliser « ${nomCible} » à la place. L'historique des séances déjà loguées n'est pas modifié.`)) return;
+
+  try {
+    const { data, error } = await supa.from('programmes_musculation').select('utilisateur,id,donnees,maj');
+    if (error) throw error;
+
+    const aMettreAJour = [];
+    (data || []).forEach(r => {
+      const exercices = r.donnees && r.donnees.exercices;
+      if (!Array.isArray(exercices)) return;
+      let touche = false;
+      const nouveauxExercices = exercices.map(pe => {
+        if (pe.exerciceId === idSource) { touche = true; return Object.assign({}, pe, { exerciceId: idCible }); }
+        return pe;
+      });
+      if (touche) {
+        aMettreAJour.push({
+          utilisateur: r.utilisateur, id: r.id,
+          donnees: Object.assign({}, r.donnees, { exercices: nouveauxExercices }),
+          maj: Date.now()
+        });
+      }
+    });
+
+    for (let i = 0; i < aMettreAJour.length; i += 200) {
+      const { error: errMaj } = await supa.from('programmes_musculation')
+        .upsert(aMettreAJour.slice(i, i + 200), { onConflict: 'utilisateur,id' });
+      if (errMaj) throw errMaj;
+    }
+
+    await consignerAction('exercice_fusionne', idSource, nomSource, null, { cible: idCible, cible_nom: nomCible, programmes_modifies: aMettreAJour.length });
+    alert(`Fait : ${aMettreAJour.length} programme(s) mis à jour. « ${nomSource} » peut maintenant être supprimé en toute sécurité.`);
+  } catch (e) {
+    alert('Transfert impossible : ' + e.message);
   }
 }
 
