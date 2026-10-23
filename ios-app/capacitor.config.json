@@ -2,7 +2,7 @@
   "appId": "com.jambou.anqa",
   "appName": "Anqā",
   "webDir": "www",
-  "backgroundColor": "#eaeef5",
+  "backgroundColor": "#06070a",
   "ios": {
     "contentInset": "automatic"
   }
