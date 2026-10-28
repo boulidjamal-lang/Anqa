@@ -17,4 +17,9 @@ if (Capacitor.isNativePlatform()) {
   // passe (chaque appel est entouré d'un try/catch côté index.html).
   natif.disponible = nom => Capacitor.isPluginAvailable(nom);
   window.AppNatif = Object.freeze(natif);
+  // L'écran de lancement d'iOS laisse la place à l'appli (et à l'animation du
+  // T) dès que la page est là, quelle que soit la version de l'appli embarquée.
+  const cacherLancement = () => requestAnimationFrame(() => natif.SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {}));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cacherLancement, { once: true });
+  else cacherLancement();
 }
