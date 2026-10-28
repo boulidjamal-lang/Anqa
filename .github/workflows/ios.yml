@@ -1,0 +1,152 @@
+# App iOS d'Askēsis, compilée sur un Mac de GitHub (aucun Mac nécessaire).
+# - « verifier » : compile pour le simulateur, sans compte Apple, puis lance
+#   l'app et photographie chaque écran (clair et sombre) avec des données de
+#   démonstration. Les captures sont à télécharger dans l'onglet Actions.
+# - « testflight » : à lancer à la main une fois le compte Apple Developer
+#   créé et les secrets ajoutés (voir ios-app/GUIDE_iOS.md).
+name: App iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      anqaa:
+        description: "Version de l'appli web à embarquer (branche ou commit du dépôt Anqaa)"
+        default: main
+        required: false
+      testflight:
+        description: "Envoyer aussi sur TestFlight (compte Apple et secrets nécessaires)"
+        type: boolean
+        default: false
+  push:
+    branches: [claude/html-to-iphone-app-cl9sj7]
+    paths:
+      - 'ios-app/**'
+      - '.github/workflows/ios.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANQAA_REF: ${{ inputs.anqaa || 'main' }}
+  BUNDLE_ID: com.jambou.askesis
+
+jobs:
+  verifier:
+    name: Compiler et photographier dans le simulateur
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ios-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Appli web (dépôt Anqaa)
+        run: |
+          git clone --quiet https://github.com/boulidjamal-lang/Anqaa.git .source
+          git -C .source checkout --quiet "$ANQAA_REF"
+          echo "Anqaa : $(git -C .source log -1 --format='%h %s')"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ios-app/package-lock.json
+
+      - run: npm ci
+
+      - name: Xcode le plus récent (hors bêta)
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|_rc' | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Préparer l'appli (version capture) et le projet iOS
+        run: |
+          node scripts/preparer-www.mjs --capture
+          npx cap sync ios
+
+      - name: Compiler pour le simulateur (sans signature)
+        run: |
+          set +e
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build > build.log 2>&1
+          code=$?
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | head -60
+          if [ $code -ne 0 ]; then tail -120 build.log; exit $code; fi
+
+      - name: Lancer l'app et photographier chaque écran
+        run: bash scripts/captures-simulateur.sh build/Build/Products/Debug-iphonesimulator/App.app captures
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures-simulateur
+          path: |
+            ios-app/captures/
+            ios-app/build.log
+          retention-days: 30
+
+  testflight:
+    name: Envoyer sur TestFlight
+    needs: verifier
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.testflight }}
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ios-app
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secrets présents
+        run: |
+          for v in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY APPLE_TEAM_ID; do
+            [ -n "${!v}" ] || { echo "::error::$v manque (voir ios-app/GUIDE_iOS.md)"; exit 1; }
+          done
+
+      - name: Appli web (dépôt Anqaa)
+        run: |
+          git clone --quiet https://github.com/boulidjamal-lang/Anqaa.git .source
+          git -C .source checkout --quiet "$ANQAA_REF"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ios-app/package-lock.json
+
+      - run: npm ci
+
+      - name: Xcode le plus récent (hors bêta)
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|_rc' | sort -V | tail -1)"
+
+      - name: Préparer l'appli (version livrée) et le projet iOS
+        run: |
+          node scripts/preparer-www.mjs
+          npx cap sync ios
+
+      - name: Archiver, signer et envoyer sur App Store Connect
+        run: |
+          printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey.p8"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8"
+                -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$(node -p "require('./package.json').version")" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" "${AUTH[@]}" archive
+          sed "s/EQUIPE/$APPLE_TEAM_ID/" scripts/ExportOptions.plist > "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" "${AUTH[@]}"
+          rm -f "$RUNNER_TEMP/AuthKey.p8"
