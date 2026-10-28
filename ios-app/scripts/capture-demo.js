@@ -76,7 +76,8 @@
       if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
       const ecran = ECRANS[i++];
       try { fermerFenetres(); allerA(ecran); if (ecran === 'repas') renderApp(); window.scrollTo(0, 0); } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
-      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 3000); }, 1800);
+      // 12 s par écran : la capture se fait à l'annonce, ou au minutage si le journal se tait.
+      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 10200); }, 1800);
     })();
   }, 3500));
 })();

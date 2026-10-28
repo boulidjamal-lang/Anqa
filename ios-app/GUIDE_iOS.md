@@ -47,9 +47,10 @@ En 15 à 20 minutes, un Mac de GitHub :
    démonstration ;
 4. photographie chaque écran, en clair et en sombre.
 
-Les captures sont dans **Artifacts › captures-simulateur**, en bas de la page
-de l'exécution. Elles ont déjà le format demandé pour l'App Store (iPhone Pro
-Max).
+Les captures sont sur la branche **captures-ios** du dépôt (menu des branches
+› `captures-ios`, puis touche une image), et aussi dans **Artifacts ›
+captures-simulateur**, en bas de la page de l'exécution. Elles ont déjà le
+format demandé pour l'App Store (iPhone Pro Max).
 
 ## Étape 1 — Le compte Apple Developer (quelques jours)
 

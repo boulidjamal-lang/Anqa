@@ -1,7 +1,8 @@
 # App iOS d'Askēsis, compilée sur un Mac de GitHub (aucun Mac nécessaire).
 # - « verifier » : compile pour le simulateur, sans compte Apple, puis lance
 #   l'app et photographie chaque écran (clair et sombre) avec des données de
-#   démonstration. Les captures sont à télécharger dans l'onglet Actions.
+#   démonstration. Les captures sont publiées sur la branche « captures-ios »
+#   (visibles directement sur GitHub) et dans l'onglet Actions.
 # - « testflight » : à lancer à la main une fois le compte Apple Developer
 #   créé et les secrets ajoutés (voir ios-app/GUIDE_iOS.md).
 name: App iOS
@@ -39,6 +40,8 @@ jobs:
     name: Compiler et photographier dans le simulateur
     runs-on: macos-latest
     timeout-minutes: 60
+    permissions:
+      contents: write   # publier les captures sur la branche captures-ios
     defaults:
       run:
         working-directory: ios-app
@@ -82,6 +85,19 @@ jobs:
 
       - name: Lancer l'app et photographier chaque écran
         run: bash scripts/captures-simulateur.sh build/Build/Products/Debug-iphonesimulator/App.app captures
+
+      - name: Publier les captures (branche captures-ios)
+        if: always()
+        env:
+          JETON: ${{ github.token }}
+        run: |
+          [ -d captures ] || exit 0
+          cd captures
+          git init -q -b captures-ios
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "Captures du simulateur (Anqa ${GITHUB_SHA::7}, Anqaa $ANQAA_REF)"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" captures-ios
 
       - uses: actions/upload-artifact@v4
         if: always()

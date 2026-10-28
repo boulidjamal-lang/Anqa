@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Lance l'app (version « capture », voir preparer-www.mjs --capture) dans le
 # plus grand simulateur iPhone disponible et photographie chaque écran, en
-# clair puis en sombre. L'app annonce chaque écran dans son journal
-# (« CAPTURE:repas »…) : la capture attend l'annonce, sans délai fixe.
+# clair puis en sombre. L'app reste 12 s sur chaque écran et l'annonce dans
+# son journal (« CAPTURE:repas »…) : la capture se fait à l'annonce, ou au
+# milieu de la fenêtre de l'écran si le journal reste muet.
 # Usage : scripts/captures-simulateur.sh <App.app> <dossier de sortie>
 set -euo pipefail
 APP="$1"
@@ -34,17 +35,21 @@ for apparence in light dark; do
   xcrun simctl ui "$UDID" appearance "$apparence"
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
   journal="$SORTIE/journal-$apparence.txt"
-  xcrun simctl launch --console "$UDID" "$BUNDLE" > "$journal" 2>&1 &
+  # Pseudo-terminal et sortie sans tampon : le journal arrive ligne à ligne.
+  debut=$(date +%s)
+  SIMCTL_CHILD_NSUnbufferedIO=YES xcrun simctl launch --console-pty "$UDID" "$BUNDLE" > "$journal" 2>&1 &
   PID=$!
   sleep 2
   xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-0-lancement.png" || true
-  n=1
+  k=0
   for ecran in repas seance stats reglages; do
-    for _ in $(seq 1 40); do grep -q "CAPTURE:$ecran" "$journal" && break; sleep 1; done
-    grep -q "CAPTURE:$ecran" "$journal" || echo "::warning::$apparence / $ecran : pas d'annonce dans le journal, capture prise quand même"
-    xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-$n-$ecran.png"
-    n=$((n + 1))
+    limite=$((debut + 12 + 12 * k))
+    while [ "$(date +%s)" -lt "$limite" ] && ! grep -q "CAPTURE:$ecran" "$journal"; do sleep 1; done
+    grep -q "CAPTURE:$ecran" "$journal" || echo "::notice::$apparence / $ecran : capture au minutage (journal muet)"
+    xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-$((k + 1))-$ecran.png"
+    k=$((k + 1))
   done
+  sleep 3
   kill "$PID" 2>/dev/null || true
 done
 
