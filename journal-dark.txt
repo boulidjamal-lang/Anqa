@@ -1,0 +1,22 @@
+2026-10-30 16:49:39.447 App[20362:64656] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/9E8558CA-F3AF-4CCC-92CD-B7E993A49F8A/data/Containers/Data/Application/646B8F56-7329-4060-8CCD-17CBE267A370/Library/Cookies/com.jambou.askesis.binarycookies
+2026-10-30 16:49:39.643 App[20362:64656] KeyboardPlugin: no resize
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  ScreenOrientation lock 71614048
+⚡️  To Native ->  NativePurchases addListener 71614049
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 71614050
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 71614051
+⚡️  TO JS undefined
+⚡️  To Native ->  SplashScreen hide 71614052
+⚡️  TO JS undefined
+⚡️  WebView loaded
+⚡️  To Native ->  StatusBar setStyle 71614053
+⚡️  To Native ->  Haptics notification 71614054
+⚡️  TO JS {}
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:repas
+⚡️  [log] - CAPTURE:seance
+⚡️  [log] - CAPTURE:stats
+⚡️  [log] - CAPTURE:reglages
+com.jambou.askesis: 20362
