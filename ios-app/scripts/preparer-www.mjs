@@ -54,6 +54,8 @@ for (const f of ['index.html', 'cgv.html', 'confidentialite.html', 'mentions-leg
   if (!existsSync(join(SOURCE, f))) echec(`${f} manque dans la source.`);
   cpSync(join(SOURCE, f), join(WWW, f));
 }
+// Les recettes, à part depuis qu'elles sont plus de 400 (absentes des versions plus anciennes de l'appli web).
+if (existsSync(join(SOURCE, 'assets', 'recettes.js'))) cpSync(join(SOURCE, 'assets', 'recettes.js'), join(WWW, 'assets', 'recettes.js'));
 cpSync(join(SOURCE, 'assets', 'miniatures'), join(WWW, 'assets', 'miniatures'), { recursive: true });
 cpSync(join(RACINE, 'polices'), join(WWW, 'polices'), { recursive: true, filter: s => !/\.txt$/.test(s) || /OFL/.test(s) });
 // Son de la notification de fin de repos : à la racine (c'est là que le module de notifications le cherche).
