@@ -1,19 +1,36 @@
 {
-  "name": "anqa-ios-app",
+  "name": "askesis-ios",
   "private": true,
   "version": "1.0.0",
-  "description": "Enveloppe iOS native (Capacitor) autour de la PWA Anqā, pour installation personnelle sur iPhone via Xcode.",
+  "description": "App iOS d'Askēsis : l'appli web (dépôt Anqaa) embarquée avec Capacitor, plus les fonctions de l'iPhone (vibrations, rappel de fin de repos, scan, Apple Santé, achats).",
   "scripts": {
-    "assets": "capacitor-assets generate --ios",
-    "sync": "cap sync ios",
-    "open": "cap open ios"
-  },
-  "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^8.5.1"
+    "preparer": "node scripts/preparer-www.mjs",
+    "sync": "node scripts/preparer-www.mjs && cap sync ios",
+    "verifier": "node scripts/verifier-projet.mjs"
   },
   "dependencies": {
-    "@capacitor/core": "^8.5.1",
-    "@capacitor/ios": "^8.5.1"
+    "@capacitor-community/keep-awake": "8.0.1",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/barcode-scanner": "3.1.3",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/screen-orientation": "8.0.2",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "@capgo/capacitor-health": "8.11.13",
+    "@capgo/native-purchases": "8.9.6",
+    "@supabase/supabase-js": "2.117.3",
+    "chart.js": "4.5.1",
+    "html5-qrcode": "2.3.8"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
   }
 }
