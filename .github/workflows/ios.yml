@@ -3,8 +3,10 @@
 #   l'app et photographie chaque écran (clair et sombre) avec des données de
 #   démonstration. Les captures sont publiées sur la branche « captures-ios »
 #   (visibles directement sur GitHub) et dans l'onglet Actions.
-# - « testflight » : à lancer à la main une fois le compte Apple Developer
-#   créé et les secrets ajoutés (voir ios-app/GUIDE_iOS.md).
+# - « app-store » : à lancer à la main une fois le compte Apple Developer
+#   créé et les secrets ajoutés (voir ios-app/GUIDE_iOS.md). Signe l'app et
+#   l'envoie sur App Store Connect : le build y apparaît, prêt à être choisi
+#   pour la version à soumettre à l'App Store (et testable dans TestFlight).
 name: App iOS
 
 on:
@@ -14,8 +16,8 @@ on:
         description: "Version de l'appli web à embarquer (branche ou commit du dépôt Anqaa)"
         default: main
         required: false
-      testflight:
-        description: "Envoyer aussi sur TestFlight (compte Apple et secrets nécessaires)"
+      app_store:
+        description: "Envoyer aussi sur App Store Connect, pour l'App Store (compte Apple et secrets nécessaires)"
         type: boolean
         default: false
   push:
@@ -108,10 +110,10 @@ jobs:
             ios-app/build.log
           retention-days: 30
 
-  testflight:
-    name: Envoyer sur TestFlight
+  app-store:
+    name: Envoyer sur App Store Connect
     needs: verifier
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.testflight }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.app_store }}
     runs-on: macos-latest
     timeout-minutes: 60
     defaults:

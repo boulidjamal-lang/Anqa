@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Envoi sur App Store Connect (TestFlight) par la compilation dans le cloud.
+<!-- Envoi sur App Store Connect (App Store et TestFlight) par la compilation dans le cloud.
      EQUIPE est remplacé par l'identifiant d'équipe Apple (variable APPLE_TEAM_ID). -->
 <plist version="1.0">
 <dict>

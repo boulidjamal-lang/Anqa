@@ -56,7 +56,19 @@ for (const f of ['index.html', 'cgv.html', 'confidentialite.html', 'mentions-leg
 }
 // Les recettes, à part depuis qu'elles sont plus de 400 (absentes des versions plus anciennes de l'appli web).
 if (existsSync(join(SOURCE, 'assets', 'recettes.js'))) cpSync(join(SOURCE, 'assets', 'recettes.js'), join(WWW, 'assets', 'recettes.js'));
-cpSync(join(SOURCE, 'assets', 'miniatures'), join(WWW, 'assets', 'miniatures'), { recursive: true });
+// Pas de assets/miniatures : ces mini-vidéos viennent de SmartWorkout, que l'app
+// n'affiche pas (voir MEDIAS_TIERS dans index.html). Leurs identifiants sont
+// vidés aussi : l'app n'embarque aucune référence à ces vidéos.
+{
+  const f = join(WWW, 'assets', 'donnees.js');
+  let d = readFileSync(f, 'utf8');
+  for (const nom of ['VIDEOS_SMARTWORKOUT', 'SW_IMAGE_VERS_VIDEO']) {
+    const ligne = new RegExp('^const ' + nom + ' = \\{.*\\};$', 'm');
+    if (!ligne.test(d)) echec(`${nom} introuvable dans assets/donnees.js : mets à jour preparer-www.mjs.`);
+    d = d.replace(ligne, `const ${nom} = {};`);
+  }
+  writeFileSync(f, d);
+}
 cpSync(join(RACINE, 'polices'), join(WWW, 'polices'), { recursive: true, filter: s => !/\.txt$/.test(s) || /OFL/.test(s) });
 // Son de la notification de fin de repos : à la racine (c'est là que le module de notifications le cherche).
 cpSync(join(RACINE, 'sons', 'fin-repos.wav'), join(WWW, 'fin-repos.wav'));

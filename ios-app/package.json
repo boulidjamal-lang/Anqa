@@ -5,8 +5,7 @@
   "description": "App iOS d'Askēsis : l'appli web (dépôt Anqaa) embarquée avec Capacitor, plus les fonctions de l'iPhone (vibrations, rappel de fin de repos, scan, Apple Santé, achats).",
   "scripts": {
     "preparer": "node scripts/preparer-www.mjs",
-    "sync": "node scripts/preparer-www.mjs && cap sync ios",
-    "verifier": "node scripts/verifier-projet.mjs"
+    "sync": "node scripts/preparer-www.mjs && cap sync ios"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "8.0.1",
