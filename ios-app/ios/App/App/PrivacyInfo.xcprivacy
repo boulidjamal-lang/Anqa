@@ -4,7 +4,9 @@
      dates des fichiers (module Filesystem, partage d'images : C617.1) et
      UserDefaults (réglages propres à l'app : CA92.1). Données collectées :
      les mêmes que dans App Store Connect › Confidentialité de l'app
-     (voir FICHE_APP_STORE.md), liées au compte, jamais pour du pistage. -->
+     (voir FICHE_APP_STORE.md), liées au compte, jamais pour du pistage.
+     Le jour où Pro est vendu dans l'app : ajouter l'historique d'achat
+     (NSPrivacyCollectedDataTypePurchaseHistory). -->
 <plist version="1.0">
 <dict>
 	<key>NSPrivacyTracking</key>
@@ -95,18 +97,6 @@
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypePurchaseHistory</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
