@@ -37,7 +37,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // courbe en plein écran), y compris sous les fenêtres présentées par
     // les modules (navigateur intégré, scanner).
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        guard let bridgeViewController = window?.rootViewController as? CAPBridgeViewController else {
+        // La page est soit la racine, soit dans la barre d'onglets native.
+        let page: CAPBridgeViewController? = PontAskesis.courant ?? (window?.rootViewController as? CAPBridgeViewController)
+        guard let bridgeViewController = page else {
             return .portrait
         }
         return bridgeViewController.supportedInterfaceOrientations

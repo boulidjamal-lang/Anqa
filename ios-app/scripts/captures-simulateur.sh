@@ -42,8 +42,8 @@ for apparence in light dark; do
   sleep 2
   xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-0-lancement.png" || true
   k=0
-  for ecran in repas seance stats reglages; do
-    limite=$((debut + 12 + 12 * k))
+  for ecran in repas seance stats reglages feuille accessoire; do
+    limite=$((debut + 12 + 18 * k))
     while [ "$(date +%s)" -lt "$limite" ] && ! grep -q "CAPTURE:$ecran" "$journal"; do sleep 1; done
     grep -q "CAPTURE:$ecran" "$journal" || echo "::notice::$apparence / $ecran : capture au minutage (journal muet)"
     xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-$((k + 1))-$ecran.png"

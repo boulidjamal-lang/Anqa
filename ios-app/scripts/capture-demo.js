@@ -4,13 +4,20 @@
    passe d'écran en écran. Le journal annonce chaque écran (« CAPTURE:repas »…)
    pour que la compilation dans le cloud prenne la capture au bon moment. */
 (function () {
-  const ECRANS = ['repas', 'seance', 'stats', 'reglages'];
+  // Les quatre onglets, puis une feuille ouverte et une séance réduite (au-dessus de la barre).
+  const ECRANS = ['repas', 'seance', 'stats', 'reglages', 'feuille', 'accessoire'];
+  const MONTRER = {
+    feuille: () => { allerA('repas'); renderApp(); ouvrirFeuilleRepas('lunch'); },
+    accessoire: async () => { allerA('seance'); await demarrerSeance(musculationProgrammes[0].id); allerA('repas'); renderApp(); }
+  };
   function fermerFenetres() {
     document.querySelectorAll('.modal.show, .feuille.show').forEach(m => m.classList.remove('show'));
     document.body.classList.remove('couche-ouverte');
   }
   function remplirDemo() {
     const t = todayStr();
+    // Pas de séance laissée en cours par la passe précédente (clair puis sombre).
+    musculationSessionActive = null; sauvegarderSessionActive();
     Object.assign(userProfile, { gender: 'm', age: 29, height: 178, pasHabituels: 8000, poidsVise: 76,
       onboarding: new Date().toISOString(), tutorielVu: true, premiersPas: { interets: ['nutrition', 'muscu', 'cardio'], masque: true } });
     userProfile.mesures = {};
@@ -75,9 +82,15 @@
     (function suivant() {
       if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
       const ecran = ECRANS[i++];
-      try { fermerFenetres(); allerA(ecran); if (ecran === 'repas') renderApp(); window.scrollTo(0, 0); } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
-      // 12 s par écran : la capture se fait à l'annonce, ou au minutage si le journal se tait.
-      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 10200); }, 1800);
+      try {
+        fermerFenetres();
+        if (MONTRER[ecran]) Promise.resolve(MONTRER[ecran]()).catch(e => console.log('CAPTURE:erreur ' + e.message));
+        else { allerA(ecran); if (ecran === 'repas') renderApp(); }
+        window.scrollTo(0, 0);
+      } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
+      // 18 s par écran : la capture se fait à l'annonce (le simulateur met
+      // parfois 10 s à photographier), ou au minutage si le journal se tait.
+      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 16200); }, 1800);
     })();
   }, 3500));
 })();

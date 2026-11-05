@@ -8,7 +8,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // iOS 26 et plus : la vraie barre d'onglets d'iOS autour de la page
+        // (voir OngletsNatifs.swift) ; avant, la page seule, avec sa barre.
+        let pont = PontAskesis()
+        if #available(iOS 26.0, *) {
+            window?.rootViewController = OngletsControleur(pont: pont)
+        } else {
+            window?.rootViewController = pont
+        }
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
