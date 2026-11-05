@@ -248,6 +248,11 @@ final class AccessoireSeance: UIView {
         let textes = UIStackView(arrangedSubviews: [titre, detail])
         textes.axis = .vertical
         textes.spacing = 0
+        // Les textes prennent la place libre : le chrono reste calé à droite.
+        textes.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textes.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        chrono.setContentHuggingPriority(.required, for: .horizontal)
+        chrono.textAlignment = .right
         let ligne = UIStackView(arrangedSubviews: [icone, textes, chrono])
         ligne.axis = .horizontal
         ligne.alignment = .center
