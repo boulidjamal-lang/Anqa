@@ -134,14 +134,22 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         if tabs.count != voulus.count { setTabs(voulus, animated: false) }
     }
 
+    /// L'onglet où se trouve la page en ce moment (celui de son conteneur).
+    private var ongletDeLaPage: String? {
+        conteneurs.first(where: { $0.value === pont.parent })?.key
+    }
+
     func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
         if tab is UISearchTab {
             module?.signaler("plus")
             return false
         }
-        if tab === selectedTab {
+        // Un onglet d'écran est toujours accepté. (Sur iOS 26, la barre a déjà
+        // déplacé sa sélection quand elle pose la question : comparer à
+        // selectedTab faisait tout refuser.) L'onglet où est déjà la page,
+        // touché à nouveau : la page remonte, ou revient à son écran.
+        if tab.identifier == ongletDeLaPage {
             module?.signaler("retouche", ["nom": tab.identifier])
-            return false
         }
         return true
     }
