@@ -46,7 +46,12 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
     static weak var courant: OngletsControleur?
 
     let pont: PontAskesis
-    weak var module: OngletsNatifs?
+    /// Le module « Onglets », pour prévenir la page. Cherché à chaque fois :
+    /// UITabBarController charge sa vue PENDANT super.init, donc le module
+    /// (chargé avec la page dans viewDidLoad) l'était avant que `courant`
+    /// existe, et une référence posée à ce moment-là restait vide : la barre
+    /// bougeait, mais la page n'en savait rien.
+    private var module: OngletsNatifs? { OngletsNatifs.instance }
     private var conteneurs: [String: ConteneurOnglet] = [:]
     private var ongletsEcrans: [UITab] = []
     private var ongletPlus: UISearchTab?
@@ -62,6 +67,8 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // viewDidLoad tourne pendant super.init : `courant` n'y est pas encore posé.
+        OngletsControleur.courant = self
         delegate = self
         let definitions: [(String, String, String)] = [
             ("repas", "Repas", "fork.knife"),
@@ -127,6 +134,13 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
 
     /// Le « + » reste dans la barre (la page ne le cache plus : recomposer la
     /// barre à chaque écran la rendait instable) ; seul son nom suit l'écran.
+    /// Le même chemin qu'un vrai appui : sélection, page déplacée, page prévenue.
+    func simulerToucher(_ nom: String) {
+        guard let onglet = ongletsEcrans.first(where: { $0.identifier == nom }) else { return }
+        selectedTab = onglet
+        suivreSelection()
+    }
+
     func montrerPlus(_ visible: Bool, libelle: String?) {
         guard let plus = ongletPlus else { return }
         if let libelle = libelle, !libelle.isEmpty, plus.title != libelle { plus.title = libelle }
@@ -325,11 +339,15 @@ public class OngletsNatifs: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "afficher", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "plus", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "accessoire", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "apparence", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "apparence", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "simulerToucher", returnType: CAPPluginReturnPromise)
     ]
 
+    /// L'instance chargée par le pont (voir PontAskesis.capacitorDidLoad).
+    static weak var instance: OngletsNatifs?
+
     override public func load() {
-        if #available(iOS 26.0, *) { OngletsControleur.courant?.module = self }
+        OngletsNatifs.instance = self
     }
 
     func signaler(_ evenement: String, _ donnees: [String: Any] = [:]) {
@@ -380,6 +398,16 @@ public class OngletsNatifs: CAPPlugin, CAPBridgedPlugin {
                 if cacher || titre.isEmpty { OngletsControleur.courant?.cacherAccessoire() }
                 else { OngletsControleur.courant?.montrerAccessoire(titre: titre, detail: detail, depuis: depuis) }
             }
+            call.resolve()
+        }
+    }
+
+    /// Vérification (captures du simulateur) : comme si l'on touchait l'onglet
+    /// `nom` dans la barre, la page doit changer d'écran.
+    @objc func simulerToucher(_ call: CAPPluginCall) {
+        let nom = call.getString("nom") ?? ""
+        DispatchQueue.main.async {
+            if #available(iOS 26.0, *) { OngletsControleur.courant?.simulerToucher(nom) }
             call.resolve()
         }
     }

@@ -75,9 +75,22 @@
     saveData();
     currentDate = t;
   }
-  window.addEventListener('load', () => setTimeout(() => {
+  /* La barre d'onglets native (iOS 26 et plus) doit prévenir la page : un
+     appui simulé sur « Progrès » doit afficher Progrès. Sinon la compilation
+     échoue (CAPTURE:erreur) : la bulle bougerait, la page resterait figée. */
+  async function verifierOngletsNatifs() {
+    if (typeof ONGLETS_NATIFS === 'undefined' || !ONGLETS_NATIFS) { console.log('CAPTURE:onglets-page (pas de barre native)'); return; }
+    allerA('repas');
+    await window.AppNatif.Onglets.simulerToucher({ nom: 'stats' });
+    await new Promise(fin => setTimeout(fin, 1500));
+    if (ecranActif === 'stats') console.log('CAPTURE:onglets-ok');
+    else console.log('CAPTURE:erreur la barre native ne prévient pas la page (écran affiché : ' + ecranActif + ')');
+    allerA('repas');
+  }
+  window.addEventListener('load', () => setTimeout(async () => {
     // Thème « auto » : l'app suit le mode clair ou sombre du simulateur.
     try { connexionObligatoire = false; fermerFenetres(); remplirDemo(); appliquerTheme('auto'); } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
+    try { await verifierOngletsNatifs(); } catch (e) { console.log('CAPTURE:erreur onglets natifs : ' + e.message); }
     let i = 0;
     (function suivant() {
       if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
