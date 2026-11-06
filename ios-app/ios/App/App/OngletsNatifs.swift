@@ -125,11 +125,13 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         installerPage(dans: nom)
     }
 
+    /// Le « + » reste dans la barre (la page ne le cache plus : recomposer la
+    /// barre à chaque écran la rendait instable) ; seul son nom suit l'écran.
     func montrerPlus(_ visible: Bool, libelle: String?) {
         guard let plus = ongletPlus else { return }
-        if let libelle = libelle, !libelle.isEmpty { plus.title = libelle }
+        if let libelle = libelle, !libelle.isEmpty, plus.title != libelle { plus.title = libelle }
         let voulus: [UITab] = visible ? ongletsEcrans + [plus] : ongletsEcrans
-        if tabs.count != voulus.count { setTabs(voulus, animated: true) }
+        if tabs.count != voulus.count { setTabs(voulus, animated: false) }
     }
 
     func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
