@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Lance l'app (version « capture », voir preparer-www.mjs --capture) dans le
 # plus grand simulateur iPhone disponible et photographie chaque écran, en
-# clair puis en sombre. L'app reste 12 s sur chaque écran et l'annonce dans
+# clair puis en sombre. L'app reste 24 s sur chaque écran et l'annonce dans
 # son journal (« CAPTURE:repas »…) : la capture se fait à l'annonce, ou au
-# milieu de la fenêtre de l'écran si le journal reste muet.
+# minutage si le journal reste muet.
 # Usage : scripts/captures-simulateur.sh <App.app> <dossier de sortie>
 set -euo pipefail
 APP="$1"
@@ -31,6 +31,13 @@ xcrun simctl bootstatus "$UDID" -b
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
 xcrun simctl install "$UDID" "$APP"
 
+# Une capture ne bloque jamais la compilation : 45 s au plus (une appli qui
+# s'emballe a déjà figé une capture un quart d'heure).
+photographier() {
+  perl -e 'alarm shift @ARGV; exec @ARGV' 45 xcrun simctl io "$UDID" screenshot "$1" \
+    || echo "::warning::$(basename "$1") : le simulateur n'a pas répondu à temps"
+}
+
 for apparence in light dark; do
   xcrun simctl ui "$UDID" appearance "$apparence"
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -40,21 +47,31 @@ for apparence in light dark; do
   SIMCTL_CHILD_NSUnbufferedIO=YES xcrun simctl launch --console-pty "$UDID" "$BUNDLE" > "$journal" 2>&1 &
   PID=$!
   sleep 2
-  xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-0-lancement.png" || true
+  photographier "$SORTIE/$apparence-0-lancement.png"
   k=0
   for ecran in repas seance stats reglages feuille accessoire; do
-    limite=$((debut + 12 + 18 * k))
+    limite=$((debut + 26 + 24 * k))
     while [ "$(date +%s)" -lt "$limite" ] && ! grep -q "CAPTURE:$ecran" "$journal"; do sleep 1; done
     grep -q "CAPTURE:$ecran" "$journal" || echo "::notice::$apparence / $ecran : capture au minutage (journal muet)"
-    xcrun simctl io "$UDID" screenshot "$SORTIE/$apparence-$((k + 1))-$ecran.png"
+    photographier "$SORTIE/$apparence-$((k + 1))-$ecran.png"
     k=$((k + 1))
   done
   sleep 3
   kill "$PID" 2>/dev/null || true
+  xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 done
 
 if grep -h "CAPTURE:erreur" "$SORTIE"/journal-*.txt; then
   echo "::error::l'appli a signalé une erreur pendant les captures (voir les journaux)"
   exit 1
 fi
+# La barre native et la page ne doivent pas se renvoyer la balle : une
+# vingtaine d'appels « selectionner » par passe, pas des centaines.
+for journal in "$SORTIE"/journal-*.txt; do
+  appels=$(grep -c "Onglets selectionner" "$journal" || true)
+  if [ "${appels:-0}" -gt 100 ]; then
+    echo "::error::$(basename "$journal") : $appels changements d'onglet, la barre et la page se renvoient la balle"
+    exit 1
+  fi
+done
 ls -1 "$SORTIE"

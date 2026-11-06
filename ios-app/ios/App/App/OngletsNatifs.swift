@@ -124,7 +124,10 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         setNeedsStatusBarAppearanceUpdate()
     }
 
-    /// Choisi depuis la page (allerA) : sans renvoyer d'évènement.
+    /// Choisi depuis la page (allerA) : sans renvoyer d'évènement. La page est
+    /// notée au courant AVANT de déplacer la sélection : les délégués appelés
+    /// au passage (iOS 26 les appelle aussi pour un choix fait par le code)
+    /// ne lui renvoient donc pas d'écho.
     func selectionner(_ nom: String) {
         guard let onglet = ongletsEcrans.first(where: { $0.identifier == nom }) else { return }
         dernierSignale = nom
@@ -132,8 +135,12 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         installerPage(dans: nom)
     }
 
-    /// Le « + » reste dans la barre (la page ne le cache plus : recomposer la
-    /// barre à chaque écran la rendait instable) ; seul son nom suit l'écran.
+    /// Pour la vérification dans le simulateur : l'onglet choisi dans la barre
+    /// et celui où se trouve la page (les deux doivent être les mêmes).
+    var etatPourVerification: [String: Any] {
+        ["onglet": selectedTab?.identifier ?? "", "page": ongletDeLaPage ?? ""]
+    }
+
     /// Le même chemin qu'un vrai appui : sélection, page déplacée, page prévenue.
     func simulerToucher(_ nom: String) {
         guard let onglet = ongletsEcrans.first(where: { $0.identifier == nom }) else { return }
@@ -141,6 +148,8 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         suivreSelection()
     }
 
+    /// Le « + » reste dans la barre (la page ne le cache plus : recomposer la
+    /// barre à chaque écran la rendait instable) ; seul son nom suit l'écran.
     func montrerPlus(_ visible: Bool, libelle: String?) {
         guard let plus = ongletPlus else { return }
         if let libelle = libelle, !libelle.isEmpty, plus.title != libelle { plus.title = libelle }
@@ -185,16 +194,20 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         suivreSelection()
     }
 
-    /// La page suit l'onglet choisi, et la page en est prévenue (une fois).
+    /// La page suit l'onglet choisi, et elle en est prévenue une fois, et
+    /// seulement si elle ne le sait pas déjà. Jamais en écho d'un
+    /// `selectionner` venu d'elle : quand la page changeait deux fois d'écran
+    /// coup sur coup, les deux échos croisés la renvoyaient à l'écran
+    /// d'avant, puis encore, sans fin (page vide ou figée).
     private func suivreSelection() {
         guard let id = selectedTab?.identifier, ORDRE_ONGLETS.contains(id) else { return }
-        let deplacee = pont.parent !== conteneurs[id]
         installerPage(dans: id)
-        if deplacee || dernierSignale != id {
+        if dernierSignale != id {
             dernierSignale = id
             module?.signaler("onglet", ["nom": id])
         }
     }
+    /// L'onglet que la page sait être le sien (posé par elle, ou annoncé à elle).
     private var dernierSignale = "repas"
 
     override func viewDidLayoutSubviews() {
@@ -356,9 +369,12 @@ public class OngletsNatifs: CAPPlugin, CAPBridgedPlugin {
 
     @objc func etat(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            var actif = false
-            if #available(iOS 26.0, *) { actif = OngletsControleur.courant != nil }
-            call.resolve(["actif": actif])
+            var reponse: [String: Any] = ["actif": false]
+            if #available(iOS 26.0, *), let barre = OngletsControleur.courant {
+                reponse = barre.etatPourVerification
+                reponse["actif"] = true
+            }
+            call.resolve(reponse)
         }
     }
 

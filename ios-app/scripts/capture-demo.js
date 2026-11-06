@@ -76,15 +76,30 @@
     currentDate = t;
   }
   /* La barre d'onglets native (iOS 26 et plus) doit prévenir la page : un
-     appui simulé sur « Progrès » doit afficher Progrès. Sinon la compilation
-     échoue (CAPTURE:erreur) : la bulle bougerait, la page resterait figée. */
+     appui simulé sur « Progrès » doit afficher Progrès. Et elle ne doit
+     prévenir la page que d'un vrai appui, jamais en écho de ce que la page
+     lui demande : deux changements d'écran coup sur coup (comme au
+     lancement d'une séance) faisaient se renvoyer la balle aux deux, sans
+     fin. Sinon la compilation échoue (CAPTURE:erreur). */
   async function verifierOngletsNatifs() {
     if (typeof ONGLETS_NATIFS === 'undefined' || !ONGLETS_NATIFS) { console.log('CAPTURE:onglets-page (pas de barre native)'); return; }
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    const barre = window.AppNatif.Onglets;
     allerA('repas');
-    await window.AppNatif.Onglets.simulerToucher({ nom: 'stats' });
-    await new Promise(fin => setTimeout(fin, 1500));
+    await barre.simulerToucher({ nom: 'stats' });
+    await pause(1500);
     if (ecranActif === 'stats') console.log('CAPTURE:onglets-ok');
     else console.log('CAPTURE:erreur la barre native ne prévient pas la page (écran affiché : ' + ecranActif + ')');
+    // Deux changements d'écran demandés par la page, coup sur coup.
+    let changements = 0;
+    const allerAPage = window.allerA;
+    window.allerA = function () { changements++; return allerAPage.apply(this, arguments); };
+    try { allerA('seance'); allerA('repas'); await pause(3000); } finally { window.allerA = allerAPage; }
+    const etat = await barre.etat();
+    if (changements > 2 || ecranActif !== 'repas' || etat.onglet !== 'repas' || etat.page !== 'repas') {
+      console.log('CAPTURE:erreur la barre et la page se renvoient la balle (' + changements + " changements d'écran au lieu de 2 ; page : "
+        + ecranActif + ', onglet de la barre : ' + etat.onglet + ', onglet où est la page : ' + etat.page + ')');
+    } else console.log('CAPTURE:onglets-sans-boucle');
     allerA('repas');
   }
   window.addEventListener('load', () => setTimeout(async () => {
@@ -101,9 +116,9 @@
         else { allerA(ecran); if (ecran === 'repas') renderApp(); }
         window.scrollTo(0, 0);
       } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
-      // 18 s par écran : la capture se fait à l'annonce (le simulateur met
+      // 24 s par écran : la capture se fait à l'annonce (le simulateur met
       // parfois 10 s à photographier), ou au minutage si le journal se tait.
-      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 16200); }, 1800);
+      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 22200); }, 1800);
     })();
   }, 3500));
 })();
