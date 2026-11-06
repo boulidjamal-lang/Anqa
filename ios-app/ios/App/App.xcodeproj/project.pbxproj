@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1FF84BEF749370905AC1F28A /* SeanceAttributs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F5D38AE05700CD990E5B4C /* SeanceAttributs.swift */; };
+		2690447465C90167ECE499D1 /* ScannerCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12211BF022ED8663EFB0DF16 /* ScannerCodes.swift */; };
 		2C038007A55F33C6378FA818 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D86A08B3154ED9BB53FD8E00 /* WidgetKit.framework */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		38AC41C909144CA365AEA32E /* SeanceEnDirect.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE3FCD5A99F515CD5E1E9B2 /* SeanceEnDirect.swift */; };
@@ -54,6 +55,7 @@
 
 /* Begin PBXFileReference section */
 		0C8DE64EC60995DD7F09E24D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		12211BF022ED8663EFB0DF16 /* ScannerCodes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScannerCodes.swift; sourceTree = "<group>"; };
 		222C8F418DC2EBDBCB3CE538 /* SeanceEnDirect.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SeanceEnDirect.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A5FAD9359C8088B72633DD5 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				61CC3D56FFA355F5DD1474D4 /* ActiviteSeance.swift */,
+				12211BF022ED8663EFB0DF16 /* ScannerCodes.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -298,6 +301,7 @@
 				A5E5100000000000000000A1 /* OngletsNatifs.swift in Sources */,
 				7CAC6F53FE68C89CFAE7B91F /* SeanceAttributs.swift in Sources */,
 				A63C5A4F36D05A80BCCED28F /* ActiviteSeance.swift in Sources */,
+				2690447465C90167ECE499D1 /* ScannerCodes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

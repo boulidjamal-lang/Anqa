@@ -106,6 +106,9 @@
     // Thème « auto » : l'app suit le mode clair ou sombre du simulateur.
     try { connexionObligatoire = false; fermerFenetres(); remplirDemo(); appliquerTheme('auto'); } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
     try { await verifierOngletsNatifs(); } catch (e) { console.log('CAPTURE:erreur onglets natifs : ' + e.message); }
+    // Le scanner de codes-barres de l'app répond (pas de caméra dans le simulateur).
+    try { const r = await window.AppNatif.Scanner.etat(); console.log('CAPTURE:scanner-ok (caméra : ' + !!(r && r.camera) + ')'); }
+    catch (e) { console.log('CAPTURE:erreur le scanner de l\'app ne répond pas : ' + e.message); }
     let i = 0;
     (function suivant() {
       if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
