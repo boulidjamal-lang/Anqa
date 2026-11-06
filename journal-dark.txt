@@ -1,0 +1,111 @@
+2026-11-06 19:21:59.209 App[24890:75790] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/5277349A-B219-4ED4-853A-8AE666B9F5B1/data/Containers/Data/Application/3B1C37E0-6209-4AB4-9F71-002CEC92628B/Library/Cookies/com.jambou.askesis.binarycookies
+2026-11-06 19:21:59.414 App[24890:75790] KeyboardPlugin: no resize
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  LocalNotifications addListener 79106553
+⚡️  To Native ->  ScreenOrientation lock 79106554
+⚡️  To Native ->  NativePurchases addListener 79106555
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 79106556
+⚡️  TO JS {}
+⚡️  To Native ->  Onglets apparence 79106557
+⚡️  To Native ->  Onglets etat 79106558
+⚡️  TO JS undefined
+⚡️  TO JS {"onglet":"repas","actif":true,"page":"repas"}
+⚡️  WebView loaded
+⚡️  To Native ->  Onglets addListener 79106559
+⚡️  To Native ->  Onglets addListener 79106560
+⚡️  To Native ->  Onglets addListener 79106561
+⚡️  To Native ->  Onglets addListener 79106562
+⚡️  To Native ->  Onglets selectionner 79106563
+⚡️  To Native ->  Onglets afficher 79106564
+⚡️  To Native ->  Onglets plus 79106565
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  SplashScreen hide 79106566
+⚡️  TO JS undefined
+⚡️  To Native ->  SplashScreen hide 79106567
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 79106568
+⚡️  To Native ->  Onglets selectionner 79106569
+⚡️  To Native ->  Onglets afficher 79106570
+⚡️  TO JS {}
+⚡️  To Native ->  Onglets plus 79106571
+⚡️  To Native ->  Onglets simulerToucher 79106572
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS {"nom":"stats"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 79106573
+⚡️  To Native ->  Onglets plus 79106574
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:onglets-ok
+⚡️  To Native ->  Onglets selectionner 79106575
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 79106576
+⚡️  To Native ->  Haptics notification 79106577
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 79106578
+⚡️  To Native ->  Onglets plus 79106579
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets etat 79106580
+⚡️  TO JS {"actif":true,"onglet":"repas","page":"repas"}
+⚡️  To Native ->  Onglets selectionner 79106581
+⚡️  [log] - CAPTURE:onglets-sans-boucle
+⚡️  TO JS undefined
+⚡️  To Native ->  Scanner etat 79106582
+⚡️  TO JS {"camera":false}
+⚡️  [log] - CAPTURE:scanner-ok (caméra : false)
+⚡️  To Native ->  Onglets selectionner 79106583
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:repas
+⚡️  To Native ->  Onglets selectionner 79106584
+⚡️  To Native ->  Onglets plus 79106585
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:seance
+⚡️  To Native ->  Onglets selectionner 79106586
+⚡️  To Native ->  Onglets plus 79106587
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:stats
+⚡️  To Native ->  Onglets selectionner 79106588
+⚡️  To Native ->  Onglets plus 79106589
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:reglages
+⚡️  To Native ->  Onglets selectionner 79106590
+⚡️  To Native ->  Onglets plus 79106591
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 79106592
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:feuille
+⚡️  To Native ->  Onglets selectionner 79106593
+⚡️  To Native ->  Onglets afficher 79106594
+⚡️  To Native ->  Onglets plus 79106595
+⚡️  To Native ->  ActiviteSeance demarrer 79106596
+⚡️  To Native ->  KeepAwake keepAwake 79106597
+⚡️  To Native ->  Onglets selectionner 79106598
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 79106599
+⚡️  To Native ->  Onglets selectionner 79106600
+⚡️  To Native ->  Onglets afficher 79106601
+⚡️  To Native ->  Onglets plus 79106602
+⚡️  To Native ->  Onglets accessoire 79106603
+⚡️  TO JS {"actif":true}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:accessoire
+com.jambou.askesis: 24890

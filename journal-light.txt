@@ -1,0 +1,77 @@
+2026-11-06 19:19:50.844 App[22346:68322] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/5277349A-B219-4ED4-853A-8AE666B9F5B1/data/Containers/Data/Application/3B1C37E0-6209-4AB4-9F71-002CEC92628B/Library/Cookies/com.jambou.askesis.binarycookies
+2026-11-06 19:19:51.121 App[22346:68322] KeyboardPlugin: no resize
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  LocalNotifications addListener 38287134
+⚡️  To Native ->  ScreenOrientation lock 38287135
+⚡️  To Native ->  NativePurchases addListener 38287136
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 38287137
+⚡️  TO JS {}
+⚡️  To Native ->  Onglets apparence 38287138
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets etat 38287139
+⚡️  TO JS {"onglet":"repas","page":"repas","actif":true}
+⚡️  WebView loaded
+⚡️  To Native ->  Onglets addListener 38287140
+⚡️  To Native ->  Onglets addListener 38287141
+⚡️  To Native ->  Onglets addListener 38287142
+⚡️  To Native ->  Onglets addListener 38287143
+⚡️  To Native ->  Onglets selectionner 38287144
+⚡️  To Native ->  Onglets afficher 38287145
+⚡️  To Native ->  Onglets plus 38287146
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  SplashScreen hide 38287147
+⚡️  To Native ->  SplashScreen hide 38287148
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 38287149
+⚡️  To Native ->  Onglets selectionner 38287150
+⚡️  TO JS {}
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 38287151
+⚡️  To Native ->  Onglets simulerToucher 38287152
+⚡️  TO JS undefined
+⚡️  TO JS {"nom":"stats"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 38287153
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 38287154
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:onglets-ok
+⚡️  To Native ->  Onglets selectionner 38287155
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 38287156
+⚡️  To Native ->  Onglets selectionner 38287157
+⚡️  To Native ->  Onglets plus 38287158
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets etat 38287159
+⚡️  TO JS {"onglet":"repas","page":"repas","actif":true}
+⚡️  [log] - CAPTURE:onglets-sans-boucle
+⚡️  To Native ->  Onglets selectionner 38287160
+⚡️  TO JS undefined
+⚡️  To Native ->  Scanner etat 38287161
+⚡️  TO JS {"camera":false}
+⚡️  [log] - CAPTURE:scanner-ok (caméra : false)
+⚡️  To Native ->  Onglets selectionner 38287162
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:repas
+⚡️  To Native ->  Onglets selectionner 38287163
+⚡️  To Native ->  Onglets plus 38287164
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:seance
+⚡️  To Native ->  Onglets selectionner 38287165
+⚡️  To Native ->  Onglets plus 38287166
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:stats
+⚡️  To Native ->  Onglets selectionner 38287167
+⚡️  To Native ->  Onglets plus 38287168
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:reglages
+com.jambou.askesis: 22346
