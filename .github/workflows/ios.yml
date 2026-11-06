@@ -12,8 +12,8 @@ name: App iOS
 on:
   workflow_dispatch:
     inputs:
-      anqaa:
-        description: "Version de l'appli web à embarquer (branche ou commit du dépôt Anqaa)"
+      web:
+        description: "Version de l'appli web à embarquer (branche ou commit du dépôt mon-coach)"
         default: main
         required: false
       app_store:
@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ANQAA_REF: ${{ inputs.anqaa || 'main' }}
+  WEB_REF: ${{ inputs.web || 'main' }}
   BUNDLE_ID: com.jambou.askesis
 
 jobs:
@@ -50,11 +50,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Appli web (dépôt Anqaa)
+      - name: Appli web (dépôt mon-coach)
         run: |
-          git clone --quiet https://github.com/boulidjamal-lang/Anqaa.git .source
-          git -C .source checkout --quiet "$ANQAA_REF"
-          echo "Anqaa : $(git -C .source log -1 --format='%h %s')"
+          git clone --quiet --filter=blob:none https://github.com/boulidjamal-lang/mon-coach.git .source
+          git -C .source checkout --quiet "$WEB_REF"
+          echo "mon-coach : $(git -C .source log -1 --format='%h %s')"
 
       - uses: actions/setup-node@v4
         with:
@@ -98,7 +98,7 @@ jobs:
           git init -q -b captures-ios
           git add -A
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -q -m "Captures du simulateur (Anqa ${GITHUB_SHA::7}, Anqaa $ANQAA_REF)"
+            commit -q -m "Captures du simulateur (Anqa ${GITHUB_SHA::7}, mon-coach $WEB_REF)"
           git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" captures-ios
 
       - uses: actions/upload-artifact@v4
@@ -133,10 +133,10 @@ jobs:
             [ -n "${!v}" ] || { echo "::error::$v manque (voir ios-app/GUIDE_iOS.md)"; exit 1; }
           done
 
-      - name: Appli web (dépôt Anqaa)
+      - name: Appli web (dépôt mon-coach)
         run: |
-          git clone --quiet https://github.com/boulidjamal-lang/Anqaa.git .source
-          git -C .source checkout --quiet "$ANQAA_REF"
+          git clone --quiet --filter=blob:none https://github.com/boulidjamal-lang/mon-coach.git .source
+          git -C .source checkout --quiet "$WEB_REF"
 
       - uses: actions/setup-node@v4
         with:

@@ -1,4 +1,4 @@
-/* Pont entre l'appli (index.html du dépôt Anqaa) et les modules iOS.
+/* Pont entre l'appli (index.html du dépôt mon-coach) et les modules iOS.
    Compilé par esbuild en www/natif.js, chargé avant tout autre script :
    l'appli teste window.AppNatif, qui n'existe que dans l'app iOS. Sur le
    web, ce fichier n'est jamais servi et rien ne change.

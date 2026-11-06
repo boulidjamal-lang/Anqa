@@ -3,7 +3,7 @@ import WebKit
 import Capacitor
 
 /* Barre d'onglets native d'Askēsis (iOS 26 et plus).
-   La page web (index.html du dépôt Anqaa) reste l'appli ; seule la barre du
+   La page web (index.html du dépôt mon-coach) reste l'appli ; seule la barre du
    bas devient la vraie barre d'iOS : verre liquide, bulle de sélection qui
    glisse d'un onglet à l'autre, réduction quand on fait défiler, « + » à
    part dans son cercle de verre, et la séance en cours posée au-dessus comme

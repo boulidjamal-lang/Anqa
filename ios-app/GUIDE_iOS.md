@@ -1,6 +1,6 @@
 # Askēsis sur l'App Store : guide pas à pas
 
-L'app iOS est prête : c'est l'appli web (dépôt **Anqaa**) embarquée dans une
+L'app iOS est prête : c'est l'appli web (dépôt **mon-coach**) embarquée dans une
 vraie app avec [Capacitor](https://capacitorjs.com/), plus les fonctions de
 l'iPhone. **Pas besoin de Mac** : la compilation se fait sur un Mac de GitHub
 (onglet *Actions* de ce dépôt), gratuitement puisque le dépôt est public.
@@ -190,7 +190,7 @@ Les captures : sur GitHub, dépôt **Anqa**, menu des branches › `captures-ios
   départ). Le numéro de build suit les exécutions de GitHub, tout seul.
 - **Une nouvelle version** : relance l'étape 6.2. Puis, dans App Store
   Connect, **+** à côté de « iOS App » (ex. 1.0.1), choisis le nouveau build,
-  **Soumettre**. L'app récupère toujours la dernière version du dépôt Anqaa.
+  **Soumettre**. L'app récupère toujours la dernière version du dépôt mon-coach.
 
 ---
 
@@ -223,7 +223,7 @@ chez Apple.
    intégrés** › **Générer** (garde le `.p8` et son Key ID).
 5. **Supabase** › **Edge Functions** › **Deploy a new function** › **Via
    Editor** : nom **`achats-apple`**, contenu de
-   `supabase/functions/achats-apple/index.ts` (dépôt Anqaa), **Verify JWT
+   `supabase/functions/achats-apple/index.ts` (dépôt mon-coach), **Verify JWT
    désactivé**. Secrets : `APPLE_IAP_KEY_ID`, `APPLE_IAP_ISSUER_ID` (le même
    qu'à l'étape 4), `APPLE_IAP_PRIVATE_KEY` (tout le `.p8`), `APPLE_BUNDLE_ID`
    = `com.jambou.askesis`.
@@ -241,7 +241,7 @@ via Apple.
 
 - `ios-app/capacitor.config.json` : nom, identifiant, réglages des modules.
 - `ios-app/scripts/preparer-www.mjs` : prépare l'appli embarquée depuis le
-  dépôt Anqaa :
+  dépôt mon-coach :
   - bibliothèques et polices locales, aux mêmes versions que le site ;
   - échec franc si une version change ;
   - ni mini-vidéos ni identifiants SmartWorkout.
@@ -252,7 +252,7 @@ via Apple.
 - `.github/workflows/ios.yml` : la compilation dans le cloud, les captures du
   simulateur et l'envoi sur App Store Connect.
 
-Côté appli, dépôt Anqaa :
+Côté appli, dépôt mon-coach :
 
 - la couche « APP iOS » d'`index.html`, inactive sur le web ;
   `PRO_EN_VENTE_APP` y décide si Pro est vendu dans l'app ;

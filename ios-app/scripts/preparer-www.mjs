@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-/* Prépare www/ : l'appli web (dépôt Anqaa) telle qu'elle tournera dans l'app iOS.
+/* Prépare www/ : l'appli web (dépôt mon-coach) telle qu'elle tournera dans l'app iOS.
    - copie index.html, assets/ et les pages légales depuis la source ;
    - remplace les bibliothèques et polices venues d'Internet (CDN, Google
      Fonts) par des copies locales, aux mêmes versions : l'app s'ouvre sans
      réseau et ne dépend d'aucun service tiers au démarrage ;
    - ajoute natif.js (le pont vers les modules iOS) avant tout autre script ;
    - bloque le zoom (pincement, zoom sur un champ), comme une app native.
-   Usage : node scripts/preparer-www.mjs [--source <dossier Anqaa>] [--capture]
+   Usage : node scripts/preparer-www.mjs [--source <dossier mon-coach>] [--capture]
    (par défaut .source/, où la compilation dans le cloud clone le dépôt).
    --capture : version de vérification seulement (jamais livrée), remplie de
    données de démonstration pour photographier chaque écran dans le simulateur. */
@@ -23,7 +23,7 @@ const WWW = join(RACINE, 'www');
 const CAPTURE = args.includes('--capture');
 
 function echec(message) { console.error('✗ ' + message); process.exit(1); }
-if (!existsSync(join(SOURCE, 'index.html'))) echec(`index.html introuvable dans ${SOURCE} (option --source, ou clone du dépôt Anqaa dans .source/).`);
+if (!existsSync(join(SOURCE, 'index.html'))) echec(`index.html introuvable dans ${SOURCE} (option --source, ou clone du dépôt mon-coach dans .source/).`);
 
 // Les bibliothèques chargées par l'appli depuis un CDN, et leur copie locale.
 // La version demandée par index.html doit être celle installée ici : si
@@ -103,7 +103,7 @@ if (restes.length) echec('ressources encore chargées depuis Internet au démarr
 writeFileSync(join(WWW, 'index.html'), html);
 
 // 3) natif.js (esbuild)
-const version = `${JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8')).version} (anqaa ${commitSource()})` + (CAPTURE ? ' — capture' : '');
+const version = `${JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8')).version} (mon-coach ${commitSource()})` + (CAPTURE ? ' — capture' : '');
 const esbuild = await import('esbuild');
 await esbuild.build({
   entryPoints: [join(RACINE, 'src', 'natif.js')], outfile: join(WWW, 'natif.js'),
