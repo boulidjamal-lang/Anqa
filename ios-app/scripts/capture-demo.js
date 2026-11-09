@@ -121,7 +121,12 @@
       } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
       // 24 s par écran : la capture se fait à l'annonce (le simulateur met
       // parfois 10 s à photographier), ou au minutage si le journal se tait.
-      setTimeout(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 22200); }, 1800);
+      // L'annonce attend que l'écran soit vraiment peint (polices chargées,
+      // deux images rendues) : une capture prise avant montrait une page blanche.
+      setTimeout(() => {
+        const peint = () => new Promise(fin => requestAnimationFrame(() => requestAnimationFrame(fin)));
+        Promise.resolve(document.fonts && document.fonts.ready).then(peint).then(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 22200); });
+      }, 1800);
     })();
   }, 3500));
 })();

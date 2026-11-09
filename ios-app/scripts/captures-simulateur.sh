@@ -33,9 +33,18 @@ xcrun simctl install "$UDID" "$APP"
 
 # Une capture ne bloque jamais la compilation : 45 s au plus (une appli qui
 # s'emballe a déjà figé une capture un quart d'heure).
+# Une image presque vide (page blanche pas encore peinte) pèse quelques Ko,
+# un vrai écran plusieurs centaines : en dessous de 40 Ko, on réessaie une
+# fois après 2 s, puis on le signale.
 photographier() {
-  perl -e 'alarm shift @ARGV; exec @ARGV' 45 xcrun simctl io "$UDID" screenshot "$1" \
-    || echo "::warning::$(basename "$1") : le simulateur n'a pas répondu à temps"
+  for essai in 1 2; do
+    perl -e 'alarm shift @ARGV; exec @ARGV' 45 xcrun simctl io "$UDID" screenshot "$1" \
+      || { echo "::warning::$(basename "$1") : le simulateur n'a pas répondu à temps"; return; }
+    taille=$(stat -f%z "$1" 2>/dev/null || echo 0)
+    [ "$taille" -ge 40000 ] && return
+    [ "$essai" = 1 ] && sleep 2
+  done
+  echo "::warning::$(basename "$1") : image presque vide ($taille octets), l'écran n'était sans doute pas peint"
 }
 
 for apparence in light dark; do
