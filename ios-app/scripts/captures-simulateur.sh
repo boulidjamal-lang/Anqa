@@ -36,15 +36,23 @@ xcrun simctl install "$UDID" "$APP"
 # Une image presque vide (page blanche pas encore peinte) pèse quelques Ko,
 # un vrai écran plusieurs centaines : en dessous de 40 Ko, on réessaie une
 # fois après 2 s, puis on le signale.
+# Juste après le démarrage du simulateur, l'image rendue peut rester figée
+# quelques secondes (la première passe, en clair, sortait quatre captures
+# identiques) : une capture identique à la précédente est reprise, jusqu'à
+# trois fois à 2 s d'intervalle, puis signalée.
+DERNIERE_EMPREINTE=""
 photographier() {
-  for essai in 1 2; do
+  for essai in 1 2 3; do
     perl -e 'alarm shift @ARGV; exec @ARGV' 45 xcrun simctl io "$UDID" screenshot "$1" \
       || { echo "::warning::$(basename "$1") : le simulateur n'a pas répondu à temps"; return; }
     taille=$(stat -f%z "$1" 2>/dev/null || echo 0)
-    [ "$taille" -ge 40000 ] && return
-    [ "$essai" = 1 ] && sleep 2
+    empreinte=$(md5 -q "$1" 2>/dev/null || echo "$taille")
+    if [ "$taille" -ge 40000 ] && [ "$empreinte" != "$DERNIERE_EMPREINTE" ]; then DERNIERE_EMPREINTE="$empreinte"; return; fi
+    [ "$essai" -lt 3 ] && sleep 2
   done
-  echo "::warning::$(basename "$1") : image presque vide ($taille octets), l'écran n'était sans doute pas peint"
+  if [ "$taille" -lt 40000 ]; then echo "::warning::$(basename "$1") : image presque vide ($taille octets), l'écran n'était sans doute pas peint"
+  else echo "::warning::$(basename "$1") : image identique à la précédente, l'écran ne s'est pas redessiné"; fi
+  DERNIERE_EMPREINTE="$empreinte"
 }
 
 for apparence in light dark; do
@@ -55,7 +63,7 @@ for apparence in light dark; do
   debut=$(date +%s)
   SIMCTL_CHILD_NSUnbufferedIO=YES xcrun simctl launch --console-pty "$UDID" "$BUNDLE" > "$journal" 2>&1 &
   PID=$!
-  sleep 2
+  sleep 4
   photographier "$SORTIE/$apparence-0-lancement.png"
   k=0
   for ecran in repas seance stats reglages feuille accessoire; do
