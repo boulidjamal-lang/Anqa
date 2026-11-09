@@ -102,6 +102,10 @@
     } else console.log('CAPTURE:onglets-sans-boucle');
     allerA('repas');
   }
+  // Captures pilotées de l'extérieur (scripts/captures-ios.js de mon-coach) : les
+  // données et les écrans sont exposés, la boucle automatique ne tourne pas.
+  window.__demo = { remplirDemo, ECRANS, MONTRER, fermerFenetres };
+  if (window.__captureManuel) return;
   window.addEventListener('load', () => setTimeout(async () => {
     // Thème « auto » : l'app suit le mode clair ou sombre du simulateur.
     try { connexionObligatoire = false; fermerFenetres(); remplirDemo(); appliquerTheme('auto'); } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
