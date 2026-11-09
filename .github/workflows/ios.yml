@@ -154,6 +154,14 @@ jobs:
           node scripts/preparer-www.mjs
           npx cap sync ios
 
+      # Chaque envoi fait créer à Xcode un certificat « Apple Development »
+      # dont la clé privée disparaît avec ce Mac : inutile ensuite, il compte
+      # pourtant dans la limite d'Apple (au-delà, plus aucun envoi ne passe).
+      # On révoque ces certificats créés par l'API, et eux seuls.
+      - name: Faire de la place pour le certificat de signature
+        continue-on-error: true
+        run: node scripts/certificats-dev.mjs
+
       - name: Archiver, signer et envoyer sur App Store Connect
         run: |
           printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey.p8"
