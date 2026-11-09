@@ -56,6 +56,8 @@ for (const f of ['index.html', 'cgv.html', 'confidentialite.html', 'mentions-leg
 }
 // Les recettes, à part depuis qu'elles sont plus de 400 (absentes des versions plus anciennes de l'appli web).
 if (existsSync(join(SOURCE, 'assets', 'recettes.js'))) cpSync(join(SOURCE, 'assets', 'recettes.js'), join(WWW, 'assets', 'recettes.js'));
+// La feuille de style sortie d'index.html (mon-coach, lot 14) : copiée quand la version embarquée l'a.
+if (existsSync(join(SOURCE, 'assets', 'styles.css'))) cpSync(join(SOURCE, 'assets', 'styles.css'), join(WWW, 'assets', 'styles.css'));
 // Pas de assets/miniatures : ces mini-vidéos viennent de SmartWorkout, que l'app
 // n'affiche pas (voir MEDIAS_TIERS dans index.html). Leurs identifiants sont
 // vidés aussi : l'app n'embarque aucune référence à ces vidéos.
