@@ -14,7 +14,7 @@ on:
     inputs:
       web:
         description: "Version de l'appli web à embarquer (branche ou commit du dépôt mon-coach)"
-        default: main
+        default: base-build-33
         required: false
       app_store:
         description: "Envoyer aussi sur App Store Connect, pour l'App Store (compte Apple et secrets nécessaires)"
@@ -34,7 +34,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WEB_REF: ${{ inputs.web || 'main' }}
+  # L'app iPhone repart du build 33 (appli web 94dd895 du 9 novembre) : la
+  # branche base-build-33 de mon-coach. Le site, lui, reste sur main.
+  WEB_REF: ${{ inputs.web || 'base-build-33' }}
   BUNDLE_ID: com.jambou.askesis
 
 jobs:

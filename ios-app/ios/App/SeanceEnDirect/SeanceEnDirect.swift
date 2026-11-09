@@ -13,9 +13,6 @@ private let symbole = "figure.strengthtraining.traditional"
 struct AskesisWidgets: WidgetBundle {
     var body: some Widget {
         SeanceEnDirect()
-        JourneeWidget()
-        ProchaineSeanceWidget()
-        PoidsWidget()
     }
 }
 

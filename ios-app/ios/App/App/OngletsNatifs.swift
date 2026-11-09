@@ -37,8 +37,6 @@ class PontAskesis: CAPBridgeViewController {
         bridge?.registerPluginInstance(OngletsNatifs())
         bridge?.registerPluginInstance(ActiviteSeancePlugin())
         bridge?.registerPluginInstance(ScannerCodes())
-        bridge?.registerPluginInstance(ResumePlugin())
-        bridge?.registerPluginInstance(EntrainementsPlugin())
     }
 }
 
