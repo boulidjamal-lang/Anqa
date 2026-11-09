@@ -55,6 +55,15 @@ photographier() {
   DERNIERE_EMPREINTE="$empreinte"
 }
 
+# Premier lancement à vide : juste après le démarrage du simulateur, la page
+# met plus longtemps à se peindre et l'image rendue peut rester blanche ou
+# figée (la première passe sortait une page blanche et deux images
+# identiques). On ouvre l'app une fois, on attend, on la ferme.
+xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+sleep 12
+xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+sleep 2
+
 for apparence in light dark; do
   xcrun simctl ui "$UDID" appearance "$apparence"
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
