@@ -43,6 +43,17 @@
       </array>
     </dict>
 	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.jambou.askesis</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>askesis</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>

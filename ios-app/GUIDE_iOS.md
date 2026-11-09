@@ -26,6 +26,10 @@ limitée à 3 essais par mois. La vente de Pro viendra dans une mise à jour
 | Scan de code-barres instantané | scanner plein écran d'iOS |
 | Pas et poids automatiques | Apple Santé (Profil › Réglages › Appareils), jamais d'écrasement d'une saisie |
 | Partage de l'image du bilan, « Enregistrer l'image » | feuille de partage d'iOS |
+| Widgets « Ma journée » (aussi sur l'écran verrouillé), « Prochaine séance », « Poids » | WidgetKit ; la page publie son résumé dans le groupe d'apps, le widget se redessine à chaque changement et à minuit |
+| Siri et Raccourcis : « Démarre ma séance », « Ajoute un verre d'eau », « Mon bilan » | App Intents ; les deux premiers ouvrent l'app sur le geste, le troisième répond sans l'ouvrir |
+| Séance terminée inscrite dans Santé (anneaux, entraînements) | HealthKit, seulement si Santé est activée dans Profil › Réglages › Appareils |
+| Séance en cours sur l'écran verrouillé et dans la Dynamic Island | activité en direct (ActivityKit) |
 
 Et pour Apple :
 
@@ -249,6 +253,22 @@ via Apple.
 - `ios-app/ios/` : le projet Xcode. Il contient les permissions en français
   (caméra, photos, Santé), HealthKit, le manifeste de confidentialité, l'icône
   (le T) et l'écran de lancement clair ou sombre.
+  - `App/OngletsNatifs.swift` : la barre d'onglets native (iOS 26) et le pont ;
+  - `App/ActiviteSeance.swift` : la séance en cours en activité en direct ;
+  - `App/Resume.swift` : le résumé publié pour les widgets et Siri, et
+    l'intention laissée par Siri ou un widget ;
+  - `App/Entrainements.swift` : la séance terminée inscrite dans Santé ;
+  - `App/Intentions.swift` : les raccourcis Siri (App Intents) ;
+  - `Partage/` : ce que l'app et l'extension partagent (attributs de la séance
+    en direct, résumé, groupe d'apps `group.com.jambou.askesis`) ;
+  - `SeanceEnDirect/` : l'extension WidgetKit (activité en direct et les
+    trois widgets).
+  L'app et l'extension ont le droit « App Groups » (`group.com.jambou.askesis`,
+  dans leurs fichiers `.entitlements`) : avec la signature automatique
+  (`-allowProvisioningUpdates`), Xcode l'enregistre lui-même chez Apple au
+  premier envoi. Si l'envoi se plaint du groupe, crée-le une fois dans
+  Certificates, Identifiers & Profiles › Identifiers › App Groups, puis
+  relance.
 - `.github/workflows/ios.yml` : la compilation dans le cloud, les captures du
   simulateur et l'envoi sur App Store Connect.
 
