@@ -86,6 +86,8 @@ for (const b of BIBLIOTHEQUES) {
   html = html.replace(balise, (t, avant, version, apres) => avant + b.local + apres);
 }
 html = html.replace(/[ \t]*<link[^>]+href="https:\/\/fonts\.(?:googleapis|gstatic)\.com[^"]*"[^>]*>\n?/g, '');
+// La politique de sécurité du contenu est faite pour le site : dans l'app, tout est local et le pont natif de Capacitor injecte ses scripts lui-même.
+html = html.replace(/<!-- Politique de sécurité du contenu[\s\S]*?-->\n/, '').replace(/[ \t]*<meta http-equiv="Content-Security-Policy"[^>]*>\n?/, '');
 html = html.replace(/<\/head>/i, '  <link rel="stylesheet" href="polices/polices.css">\n</head>');
 const premierScript = html.search(/<script[\s>]/i);
 if (premierScript < 0 || premierScript > html.search(/<\/head>/i)) echec('aucun script dans <head> : où placer natif.js ?');
