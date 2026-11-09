@@ -264,11 +264,21 @@ via Apple.
   - `SeanceEnDirect/` : l'extension WidgetKit (activité en direct et les
     trois widgets).
   L'app et l'extension ont le droit « App Groups » (`group.com.jambou.askesis`,
-  dans leurs fichiers `.entitlements`) : avec la signature automatique
-  (`-allowProvisioningUpdates`), Xcode l'enregistre lui-même chez Apple au
-  premier envoi. Si l'envoi se plaint du groupe, crée-le une fois dans
-  Certificates, Identifiers & Profiles › Identifiers › App Groups, puis
-  relance.
+  dans leurs fichiers `.entitlements`). La signature automatique du workflow
+  ne sait pas créer ce groupe chez Apple : au premier envoi, l'archive
+  s'arrête sur « Provisioning profile … doesn't match the entitlements
+  file's value for the com.apple.security.application-groups entitlement ».
+  À faire une fois, sur developer.apple.com › Certificates, Identifiers &
+  Profiles (5 minutes) :
+  1. Identifiers › « + » › App Groups › Continue ; description « Askēsis »,
+     identifiant `group.com.jambou.askesis` › Register.
+  2. Identifiers › App IDs › `com.jambou.askesis` › coche « App Groups » ›
+     Edit/Configure › coche `group.com.jambou.askesis` › Save.
+  3. Même chose pour `com.jambou.askesis.SeanceEnDirect` (l'extension ; si
+     cet App ID n'apparaît pas, le workflow l'a créé au premier essai :
+     recharge la page).
+  Puis relancer « App iOS » avec « App Store » coché : Xcode régénère les
+  profils avec le groupe.
 - `.github/workflows/ios.yml` : la compilation dans le cloud, les captures du
   simulateur et l'envoi sur App Store Connect.
 
