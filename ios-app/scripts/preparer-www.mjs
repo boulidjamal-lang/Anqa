@@ -58,6 +58,9 @@ for (const f of ['index.html', 'cgv.html', 'confidentialite.html', 'mentions-leg
 if (existsSync(join(SOURCE, 'assets', 'recettes.js'))) cpSync(join(SOURCE, 'assets', 'recettes.js'), join(WWW, 'assets', 'recettes.js'));
 // La feuille de style sortie d'index.html (mon-coach, lot 14) : copiée quand la version embarquée l'a.
 if (existsSync(join(SOURCE, 'assets', 'styles.css'))) cpSync(join(SOURCE, 'assets', 'styles.css'), join(WWW, 'assets', 'styles.css'));
+// L'atlas musculaire 3D (moteur, mouvements, modèle et sa notice de licence) : copié quand la version embarquée l'a.
+// Tout est local : l'atlas s'ouvre sans réseau.
+if (existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', 'atlas'), join(WWW, 'assets', 'atlas'), { recursive: true });
 // Pas de assets/miniatures : ces mini-vidéos viennent de SmartWorkout, que l'app
 // n'affiche pas (voir MEDIAS_TIERS dans index.html). Leurs identifiants sont
 // vidés aussi : l'app n'embarque aucune référence à ces vidéos.
