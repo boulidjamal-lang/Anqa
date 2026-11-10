@@ -190,7 +190,9 @@ Les captures : sur GitHub, dépôt **Anqa**, menu des branches › `captures-ios
   départ). Le numéro de build suit les exécutions de GitHub, tout seul.
 - **Une nouvelle version** : relance l'étape 6.2. Puis, dans App Store
   Connect, **+** à côté de « iOS App » (ex. 1.0.1), choisis le nouveau build,
-  **Soumettre**. L'app récupère toujours la dernière version du dépôt mon-coach.
+  **Soumettre**. L'app embarque par défaut la branche `base-build-33` du dépôt
+  mon-coach : l'appli web du build 33 et ses retouches. Pour une autre
+  version, indique-la dans le champ « web » au lancement du workflow.
 
 ---
 
