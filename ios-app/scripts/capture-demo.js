@@ -55,7 +55,19 @@
     const bilan = { pret_ms: pret, images_en_2s: m.images - i0, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau, mode: e.mode,
       toile: m.largeur + 'x' + m.hauteur, pixels: m.pixels, anime: !!(atlasMonte.animation && atlasMonte.animation()), titre: (document.getElementById('titre-atlas') || {}).textContent, erreur_gl: erreurGl,
       premier_sommet: m.premierSommet == null ? 'inconnu' : m.premierSommet, carte };
+    // Mesure comparée, sur la même machine et dans la même minute : l'écorché sans peau (0) et la peau entière (2),
+    // que l'appli ne propose plus, face à l'apparence de l'appli (1, mesurée ci-dessus). Les machines de compilation
+    // vont du simple au quintuple d'une fois sur l'autre : seule cette comparaison dit ce que coûte une apparence.
+    if (exercice && atlasMonte.atlas.aPeau) {
+      const cadence = async niveau => { atlasMonte.atlas.niveauPeau(niveau); await pause(300); const a = atlasMonte.atlas.mesures().images; await pause(2000); return atlasMonte.atlas.mesures().images - a; };
+      bilan.images_sans_peau_en_2s = await cadence(0);
+      bilan.images_peau_entiere_en_2s = await cadence(2);
+      atlasMonte.atlas.niveauPeau(1); await pause(300);
+      bilan.triangles_par_image = atlasMonte.atlas.mesures().trianglesSoumis || 'inconnu';
+      bilan.erreur_gl_apparences = gl ? gl.getError() : -1;
+    }
     const fautes = [];
+    if (bilan.erreur_gl_apparences) fautes.push('erreur de la carte graphique ' + bilan.erreur_gl_apparences + " en changeant d'apparence");
     if (m.images < 1) fautes.push('aucune image dessinée');
     if (erreurGl) fautes.push('erreur de la carte graphique ' + erreurGl);
     if (gl && gl.isContextLost()) fautes.push('contexte graphique perdu');
