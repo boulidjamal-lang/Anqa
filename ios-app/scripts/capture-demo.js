@@ -10,9 +10,54 @@
     feuille: () => { allerA('repas'); renderApp(); ouvrirFeuilleRepas('lunch'); },
     accessoire: async () => { allerA('seance'); await demarrerSeance(musculationProgrammes[0].id); allerA('repas'); renderApp(); }
   };
+  // L'atlas musculaire 3D, quand la version embarquée de l'appli web l'a : sur la carte de la semaine, puis sur un
+  // exercice animé (captures-simulateur.sh ajoute les deux mêmes écrans quand l'app contient assets/atlas).
+  if (typeof ouvrirAtlas === 'function') {
+    ECRANS.push('atlas', 'atlas-exercice');
+    MONTRER.atlas = () => montrerAtlas(null);
+    MONTRER['atlas-exercice'] = () => montrerAtlas((toutesLesExercices().find(e => /^squat avec barre$/i.test(e.nom)) || toutesLesExercices().find(e => mouvementExercice(e.id)) || {}).id);
+  }
   function fermerFenetres() {
+    // L'atlas rend sa carte graphique en se fermant (retirer la classe ne suffirait pas).
+    if (typeof fermerSceneAtlas === 'function') { try { fermerSceneAtlas(); } catch (e) {} }
     document.querySelectorAll('.modal.show, .feuille.show').forEach(m => m.classList.remove('show'));
     document.body.classList.remove('couche-ouverte');
+  }
+  /* L'atlas 3D dans le WebKit du simulateur : il doit se monter, dessiner, et ne laisser aucune erreur à la carte
+     graphique ; sur un exercice, le mouvement doit tourner. Sinon la compilation échoue (CAPTURE:erreur), et rien
+     n'est envoyé sur App Store Connect. Si le simulateur ne donne pas WebGL 2, on le dit sans échouer : l'atlas
+     n'est alors pas vérifié ici. */
+  async function montrerAtlas(exercice) {
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    const quoi = exercice ? 'atlas-exercice' : 'atlas';
+    allerA(exercice ? 'seance' : 'repas'); renderApp();
+    const essai = document.createElement('canvas').getContext('webgl2');
+    if (!essai) { console.log('CAPTURE:' + quoi + '-sans-webgl2 (ce simulateur ne donne pas WebGL 2 : atlas non vérifié ici)'); return; }
+    const info = essai.getExtension('WEBGL_debug_renderer_info');
+    const carte = String(info ? essai.getParameter(info.UNMASKED_RENDERER_WEBGL) : essai.getParameter(essai.RENDERER));
+    const perdre = essai.getExtension('WEBGL_lose_context'); if (perdre) perdre.loseContext();
+    const debut = Date.now();
+    await ouvrirAtlas('semaine', exercice ? { exercice } : undefined);
+    // Monté, et une première image dessinée (12 s au plus).
+    for (let k = 0; k < 48 && !(atlasMonte && atlasMonte.atlas.mesures().images >= 1); k++) await pause(250);
+    if (!atlasMonte) {
+      const message = (document.querySelector('#atlas-scene [role="alert"]') || {}).textContent || 'aucun message';
+      console.log("CAPTURE:erreur l'atlas 3D ne se monte pas dans ce WebKit (" + quoi + ' ; ' + message + ' ; carte : ' + carte + ')'); return;
+    }
+    const pret = Date.now() - debut, toile = document.querySelector('#atlas-scene canvas'), gl = toile && toile.getContext('webgl2');
+    const i0 = atlasMonte.atlas.mesures().images; await pause(2000);
+    const m = atlasMonte.atlas.mesures(), e = atlasMonte.etat(), erreurGl = gl ? gl.getError() : -1;
+    const bilan = { pret_ms: pret, images_en_2s: m.images - i0, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau, mode: e.mode,
+      toile: m.largeur + 'x' + m.hauteur, pixels: m.pixels, anime: !!(atlasMonte.animation && atlasMonte.animation()), titre: (document.getElementById('titre-atlas') || {}).textContent, erreur_gl: erreurGl,
+      premier_sommet: m.premierSommet == null ? 'inconnu' : m.premierSommet, carte };
+    const fautes = [];
+    if (m.images < 1) fautes.push('aucune image dessinée');
+    if (erreurGl) fautes.push('erreur de la carte graphique ' + erreurGl);
+    if (gl && gl.isContextLost()) fautes.push('contexte graphique perdu');
+    if (exercice && !bilan.anime) fautes.push("l'exercice n'est pas animé");
+    if (exercice && bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
+    if (exercice && e.mode !== 'exercice') fautes.push('mode ' + e.mode + " au lieu d'« exercice »");
+    console.log((fautes.length ? "CAPTURE:erreur l'atlas 3D (" + quoi + ') : ' + fautes.join(' ; ') + ' ' : 'CAPTURE:' + quoi + '-ok ') + JSON.stringify(bilan));
   }
   function remplirDemo() {
     const t = todayStr();
@@ -116,10 +161,11 @@
     let i = 0;
     (function suivant() {
       if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
-      const ecran = ECRANS[i++];
+      const ecran = ECRANS[i++], debut = Date.now(), atlas = /^atlas/.test(ecran);
+      let pret = null;
       try {
         fermerFenetres();
-        if (MONTRER[ecran]) Promise.resolve(MONTRER[ecran]()).catch(e => console.log('CAPTURE:erreur ' + e.message));
+        if (MONTRER[ecran]) pret = Promise.resolve(MONTRER[ecran]()).catch(e => console.log('CAPTURE:erreur ' + e.message));
         else { allerA(ecran); if (ecran === 'repas') renderApp(); }
         window.scrollTo(0, 0);
       } catch (e) { console.log('CAPTURE:erreur ' + e.message); }
@@ -127,9 +173,12 @@
       // parfois 10 s à photographier), ou au minutage si le journal se tait.
       // L'annonce attend que l'écran soit vraiment peint (polices chargées,
       // deux images rendues) : une capture prise avant montrait une page blanche.
+      // L'atlas se charge puis se dessine : son annonce attend qu'il soit vérifié (15 s au plus), et l'écran suivant
+      // vient toujours 24 s après le début de celui-ci, pour rester dans le minutage de la capture.
       setTimeout(() => {
         const peint = () => new Promise(fin => requestAnimationFrame(() => requestAnimationFrame(fin)));
-        Promise.resolve(document.fonts && document.fonts.ready).then(peint).then(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, 22200); });
+        const avant = atlas && pret ? Promise.race([pret, new Promise(fin => setTimeout(fin, 15000))]) : Promise.resolve();
+        avant.then(() => document.fonts && document.fonts.ready).then(peint).then(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, atlas ? Math.max(3000, 24000 - (Date.now() - debut)) : 22200); });
       }, 1800);
     })();
   }, 3500));

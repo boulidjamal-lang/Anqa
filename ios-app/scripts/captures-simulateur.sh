@@ -3,7 +3,9 @@
 # plus grand simulateur iPhone disponible et photographie chaque écran, en
 # clair puis en sombre. L'app reste 24 s sur chaque écran et l'annonce dans
 # son journal (« CAPTURE:repas »…) : la capture se fait à l'annonce, ou au
-# minutage si le journal reste muet.
+# minutage si le journal reste muet. Quand l'app embarque l'atlas musculaire
+# 3D, deux écrans de plus : l'atlas sur une carte, puis sur un exercice animé
+# (l'app vérifie qu'il se monte et dessine ; sinon elle annonce une erreur).
 # Usage : scripts/captures-simulateur.sh <App.app> <dossier de sortie>
 set -euo pipefail
 APP="$1"
@@ -40,6 +42,11 @@ xcrun simctl install "$UDID" "$APP"
 # quelques secondes (la première passe, en clair, sortait quatre captures
 # identiques) : une capture identique à la précédente est reprise, jusqu'à
 # trois fois à 2 s d'intervalle, puis signalée.
+# Les écrans, dans l'ordre où l'app les montre (capture-demo.js).
+ECRANS="repas seance stats reglages feuille accessoire"
+ATLAS=""
+if [ -d "$APP/public/assets/atlas" ]; then ATLAS=oui; ECRANS="$ECRANS atlas atlas-exercice"; echo "Atlas 3D embarqué : deux écrans de plus."; fi
+
 DERNIERE_EMPREINTE=""
 photographier() {
   for essai in 1 2 3; do
@@ -75,21 +82,38 @@ for apparence in light dark; do
   sleep 4
   photographier "$SORTIE/$apparence-0-lancement.png"
   k=0
-  for ecran in repas seance stats reglages feuille accessoire; do
+  for ecran in $ECRANS; do
     limite=$((debut + 26 + 24 * k))
     while [ "$(date +%s)" -lt "$limite" ] && ! grep -q "CAPTURE:$ecran" "$journal"; do sleep 1; done
     grep -q "CAPTURE:$ecran" "$journal" || echo "::notice::$apparence / $ecran : capture au minutage (journal muet)"
     photographier "$SORTIE/$apparence-$((k + 1))-$ecran.png"
     k=$((k + 1))
   done
+  # L'atlas rend son verdict une fois dessiné : on le lui laisse rendre avant de fermer l'app (20 s au plus).
+  if [ -n "$ATLAS" ]; then
+    fin=$(( $(date +%s) + 20 ))
+    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:atlas-exercice-(ok|sans-webgl2)|CAPTURE:erreur" "$journal"; do sleep 1; done
+  fi
   sleep 3
   kill "$PID" 2>/dev/null || true
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
 done
 
+# Ce que l'app a constaté de l'atlas 3D (monté, images dessinées, mouvement, carte graphique).
+grep -h "CAPTURE:atlas" "$SORTIE"/journal-*.txt || true
 if grep -h "CAPTURE:erreur" "$SORTIE"/journal-*.txt; then
   echo "::error::l'appli a signalé une erreur pendant les captures (voir les journaux)"
   exit 1
+fi
+# Un atlas embarqué doit avoir rendu son verdict à chaque passe, sur la carte et sur l'exercice : sans verdict,
+# rien ne prouve qu'il s'ouvre, et la compilation s'arrête là (rien n'est envoyé sur App Store Connect).
+if [ -n "$ATLAS" ]; then
+  for journal in "$SORTIE"/journal-*.txt; do
+    for ecran in atlas atlas-exercice; do
+      grep -Eq "CAPTURE:$ecran-(ok|sans-webgl2)" "$journal" || { echo "::error::$(basename "$journal") : l'atlas 3D n'a pas rendu son verdict ($ecran)"; exit 1; }
+    done
+  done
+  if grep -q "sans-webgl2" "$SORTIE"/journal-*.txt; then echo "::warning::atlas 3D non vérifié : ce simulateur ne donne pas WebGL 2"; fi
 fi
 # La barre native et la page ne doivent pas se renvoyer la balle : une
 # vingtaine d'appels « selectionner » par passe, pas des centaines.
