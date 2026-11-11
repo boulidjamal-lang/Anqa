@@ -96,6 +96,12 @@
     if (!bilan.anime) fautes.push("l'exercice n'est pas animé");
     if (bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
     if (m.peau !== 1) fautes.push('peau ' + m.peau + ' au lieu de la peau partielle');
+    // La peau gardée a la teinte du corps (version de l'appli web qui sait le dire) : ni teinte de chair, ni autre gris.
+    if (a.apparence) {
+      const ap = a.apparence(), attendu = typeof neutresExerciceAtlas === 'function' ? neutresExerciceAtlas().peau : null;
+      bilan.teinte_peau = ap.teint;
+      if (ap.chair !== 0 || (attendu && ap.teint !== attendu)) fautes.push('la peau n\'a pas la teinte du corps (' + ap.teint + ', chair ' + ap.chair + ')');
+    }
     if (!bilan.visible) fautes.push("le cadre du mouvement n'est pas à l'écran");
     // L'atlas ouvert depuis la fiche : au premier plan. Puis on le referme, et la fiche reprend son mouvement
     // (c'est elle que la capture doit montrer).
