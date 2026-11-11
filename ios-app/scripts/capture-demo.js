@@ -13,13 +13,18 @@
   // L'atlas musculaire 3D, quand la version embarquée de l'appli web l'a : sur la carte de la semaine, puis sur un
   // exercice animé (captures-simulateur.sh ajoute les deux mêmes écrans quand l'app contient assets/atlas).
   if (typeof ouvrirAtlas === 'function') {
+    const squat = () => (toutesLesExercices().find(e => /^squat avec barre$/i.test(e.nom)) || toutesLesExercices().find(e => mouvementExercice(e.id)) || {}).id;
     ECRANS.push('atlas', 'atlas-exercice');
     MONTRER.atlas = () => montrerAtlas(null);
-    MONTRER['atlas-exercice'] = () => montrerAtlas((toutesLesExercices().find(e => /^squat avec barre$/i.test(e.nom)) || toutesLesExercices().find(e => mouvementExercice(e.id)) || {}).id);
+    MONTRER['atlas-exercice'] = () => montrerAtlas(squat());
+    // La fiche d'un exercice montre son mouvement d'elle-même, quand la version embarquée de l'appli web le fait
+    // (captures-simulateur.sh ajoute le même écran quand index.html contient monterMouvementFiche).
+    if (typeof monterMouvementFiche === 'function') { ECRANS.push('atlas-fiche'); MONTRER['atlas-fiche'] = () => montrerFicheAtlas(squat()); }
   }
   function fermerFenetres() {
-    // L'atlas rend sa carte graphique en se fermant (retirer la classe ne suffirait pas).
+    // L'atlas rend sa carte graphique en se fermant (retirer la classe ne suffirait pas) ; le mouvement de la fiche aussi.
     if (typeof fermerSceneAtlas === 'function') { try { fermerSceneAtlas(); } catch (e) {} }
+    if (typeof fermerMouvementFiche === 'function') { try { fermerMouvementFiche(); } catch (e) {} }
     document.querySelectorAll('.modal.show, .feuille.show').forEach(m => m.classList.remove('show'));
     document.body.classList.remove('couche-ouverte');
   }
@@ -58,6 +63,52 @@
     if (exercice && bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
     if (exercice && e.mode !== 'exercice') fautes.push('mode ' + e.mode + " au lieu d'« exercice »");
     console.log((fautes.length ? "CAPTURE:erreur l'atlas 3D (" + quoi + ') : ' + fautes.join(' ; ') + ' ' : 'CAPTURE:' + quoi + '-ok ') + JSON.stringify(bilan));
+  }
+  /* La fiche d'un exercice dans le WebKit du simulateur : en l'ouvrant, le corps doit exécuter le mouvement sans
+     qu'on touche à rien (c'est ce que voit la personne qui touche un exercice). Puis l'atlas ouvert depuis la fiche
+     doit passer DEVANT elle — au build 53 il s'ouvrait derrière, et l'on ne voyait rien. Mêmes verdicts que pour
+     l'atlas : CAPTURE:atlas-fiche-ok, CAPTURE:erreur (la compilation s'arrête) ou sans-webgl2. */
+  async function montrerFicheAtlas(id) {
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    allerA('seance'); renderApp();
+    const essai = document.createElement('canvas').getContext('webgl2');
+    if (!essai) { console.log('CAPTURE:atlas-fiche-sans-webgl2 (ce simulateur ne donne pas WebGL 2 : fiche non vérifiée ici)'); return; }
+    const perdre = essai.getExtension('WEBGL_lose_context'); if (perdre) perdre.loseContext();
+    const debut = Date.now();
+    afficherFicheExerciceBiblio(id);
+    // Monté, et une première image dessinée (15 s au plus).
+    const monte = async () => { for (let k = 0; k < 60 && !(ficheMouvement && ficheMouvement.apercu.atlas.mesures().images >= 1); k++) await pause(250); return !!ficheMouvement; };
+    if (!(await monte())) {
+      console.log("CAPTURE:erreur la fiche d'un exercice ne montre pas son mouvement dans ce WebKit (cadre : " + !!document.getElementById('fiche-exo-3d') + ' ; repli sur la photo : ' + !!document.querySelector('#fiche-exo-media .fiche-exo-image') + ')'); return;
+    }
+    const pret = Date.now() - debut, a = ficheMouvement.apercu.atlas, toile = document.querySelector('#fiche-exo-3d canvas'), gl = toile && toile.getContext('webgl2');
+    // Le simulateur peut demander moins d'animations : le mouvement est lancé pour être mesuré.
+    ficheMouvement.voulu = true; ficheMouvement.apercu.lecture(true);
+    const i0 = a.mesures().images; await pause(2000);
+    const m = a.mesures(), erreurGl = gl ? gl.getError() : -1, boite = toile.getBoundingClientRect();
+    const bilan = { pret_ms: pret, images_en_2s: m.images - i0, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau,
+      toile: m.largeur + 'x' + m.hauteur, pixels: m.pixels, anime: !!ficheMouvement.apercu.anime, titre: (document.getElementById('titre-fiche-exercice') || {}).textContent, erreur_gl: erreurGl,
+      premier_sommet: m.premierSommet == null ? 'inconnu' : m.premierSommet, visible: boite.width > 100 && boite.height > 100 && boite.top < innerHeight };
+    const fautes = [];
+    if (m.images < 1) fautes.push('aucune image dessinée');
+    if (erreurGl) fautes.push('erreur de la carte graphique ' + erreurGl);
+    if (gl && gl.isContextLost()) fautes.push('contexte graphique perdu');
+    if (!bilan.anime) fautes.push("l'exercice n'est pas animé");
+    if (bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
+    if (m.peau !== 1) fautes.push('peau ' + m.peau + ' au lieu de la peau partielle');
+    if (!bilan.visible) fautes.push("le cadre du mouvement n'est pas à l'écran");
+    // L'atlas ouvert depuis la fiche : au premier plan. Puis on le referme, et la fiche reprend son mouvement
+    // (c'est elle que la capture doit montrer).
+    agrandirMouvementFiche();
+    for (let k = 0; k < 48 && !(atlasMonte && atlasMonte.atlas.mesures().images >= 1); k++) await pause(250);
+    const dessus = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+    bilan.atlas_devant = !!(atlasMonte && dessus && dessus.closest('#atlas-modal'));
+    if (!bilan.atlas_devant) fautes.push("l'atlas ouvert depuis la fiche n'est pas au premier plan");
+    fermerAtlas();
+    bilan.reprise = await monte();
+    if (!bilan.reprise) fautes.push("le mouvement de la fiche ne reprend pas après l'atlas");
+    else { ficheMouvement.voulu = true; ficheMouvement.apercu.lecture(true); }
+    console.log((fautes.length ? "CAPTURE:erreur la fiche d'un exercice (atlas-fiche) : " + fautes.join(' ; ') + ' ' : 'CAPTURE:atlas-fiche-ok ') + JSON.stringify(bilan));
   }
   function remplirDemo() {
     const t = todayStr();

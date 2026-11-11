@@ -4,8 +4,9 @@
 # clair puis en sombre. L'app reste 24 s sur chaque écran et l'annonce dans
 # son journal (« CAPTURE:repas »…) : la capture se fait à l'annonce, ou au
 # minutage si le journal reste muet. Quand l'app embarque l'atlas musculaire
-# 3D, deux écrans de plus : l'atlas sur une carte, puis sur un exercice animé
-# (l'app vérifie qu'il se monte et dessine ; sinon elle annonce une erreur).
+# 3D, des écrans de plus : l'atlas sur une carte, sur un exercice animé, puis
+# la fiche d'un exercice, qui doit montrer son mouvement d'elle-même (l'app
+# vérifie que tout se monte et dessine ; sinon elle annonce une erreur).
 # Usage : scripts/captures-simulateur.sh <App.app> <dossier de sortie>
 set -euo pipefail
 APP="$1"
@@ -45,7 +46,14 @@ xcrun simctl install "$UDID" "$APP"
 # Les écrans, dans l'ordre où l'app les montre (capture-demo.js).
 ECRANS="repas seance stats reglages feuille accessoire"
 ATLAS=""
-if [ -d "$APP/public/assets/atlas" ]; then ATLAS=oui; ECRANS="$ECRANS atlas atlas-exercice"; echo "Atlas 3D embarqué : deux écrans de plus."; fi
+ECRANS_ATLAS=""
+if [ -d "$APP/public/assets/atlas" ]; then
+  ATLAS=oui; ECRANS_ATLAS="atlas atlas-exercice"
+  # La fiche d'un exercice montre son mouvement d'elle-même quand l'appli web embarquée le fait : un écran de plus.
+  if grep -q "monterMouvementFiche" "$APP/public/index.html" 2>/dev/null; then ECRANS_ATLAS="$ECRANS_ATLAS atlas-fiche"; fi
+  ECRANS="$ECRANS $ECRANS_ATLAS"; echo "Atlas 3D embarqué : écrans de plus ($ECRANS_ATLAS)."
+fi
+DERNIER_ATLAS="${ECRANS_ATLAS##* }"
 
 DERNIERE_EMPREINTE=""
 photographier() {
@@ -92,7 +100,7 @@ for apparence in light dark; do
   # L'atlas rend son verdict une fois dessiné : on le lui laisse rendre avant de fermer l'app (20 s au plus).
   if [ -n "$ATLAS" ]; then
     fin=$(( $(date +%s) + 20 ))
-    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:atlas-exercice-(ok|sans-webgl2)|CAPTURE:erreur" "$journal"; do sleep 1; done
+    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:$DERNIER_ATLAS-(ok|sans-webgl2)|CAPTURE:erreur" "$journal"; do sleep 1; done
   fi
   sleep 3
   kill "$PID" 2>/dev/null || true
@@ -109,7 +117,7 @@ fi
 # rien ne prouve qu'il s'ouvre, et la compilation s'arrête là (rien n'est envoyé sur App Store Connect).
 if [ -n "$ATLAS" ]; then
   for journal in "$SORTIE"/journal-*.txt; do
-    for ecran in atlas atlas-exercice; do
+    for ecran in $ECRANS_ATLAS; do
       grep -Eq "CAPTURE:$ecran-(ok|sans-webgl2)" "$journal" || { echo "::error::$(basename "$journal") : l'atlas 3D n'a pas rendu son verdict ($ecran)"; exit 1; }
     done
   done
