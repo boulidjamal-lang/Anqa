@@ -97,9 +97,11 @@ for apparence in light dark; do
     photographier "$SORTIE/$apparence-$((k + 1))-$ecran.png"
     k=$((k + 1))
   done
-  # L'atlas rend son verdict une fois dessiné : on le lui laisse rendre avant de fermer l'app (20 s au plus).
+  # L'atlas rend son verdict une fois dessiné : on le lui laisse rendre avant de fermer l'app. D'ordinaire il est déjà
+  # là ; sur une machine qui cale, la mesure du mouvement est refaite (capture-demo.js, cadenceDuMouvement) et le
+  # verdict peut venir bien après la dernière capture : 150 s au plus, sans attendre une seconde de trop s'il est là.
   if [ -n "$ATLAS" ]; then
-    fin=$(( $(date +%s) + 20 ))
+    fin=$(( $(date +%s) + 150 ))
     while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:$DERNIER_ATLAS-(ok|sans-webgl2)|CAPTURE:erreur" "$journal"; do sleep 1; done
   fi
   sleep 3

@@ -31,6 +31,33 @@
     document.querySelectorAll('.modal.show, .feuille.show').forEach(m => m.classList.remove('show'));
     document.body.classList.remove('couche-ouverte');
   }
+  /* Le mouvement tourne-t-il ? On compte les images qu'il dessine en 2 s et, dans la même fenêtre, les tours du moteur
+     web (requestAnimationFrame : chaque fois qu'il donne la main pour dessiner), dont ceux où l'appli dit le mouvement
+     en lecture. Les machines de compilation calent parfois : au run 62, l'atlas a mis 77 s à s'ouvrir, une capture
+     d'écran n'a pas répondu en 45 s, et cette mesure n'a vu qu'une image en 2 s là où la même version en dessinait 96
+     un instant plus tôt. Une fenêtre où le moteur web n'a presque rien dessiné ne prouve donc rien : la mesure est
+     refaite, douze fois au plus. Une fenêtre où il a dessiné vingt fois ou plus, mouvement en lecture, sans que le
+     mouvement avance, est une faute établie : on s'arrête là. Avant chaque fenêtre, le mouvement est relancé puis on
+     laisse 0,6 s à l'appli pour le remettre en pause si elle juge qu'il ne doit pas tourner (cadre hors de l'écran) :
+     ce qui est compté, c'est ce que l'appli laisse tourner. Rend tous les essais ; le dernier est celui qui compte. */
+  async function cadenceDuMouvement(images, relancer, lit, etat) {
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    const enLecture = () => { try { return !lit || !!lit(); } catch (e) { return false; } };
+    const fenetre = async () => {
+      if (relancer) { try { relancer(); } catch (e) { /* écran refermé entre-temps : la fenêtre le dira (aucune image) */ } }
+      await pause(600);
+      let tours = 0, lus = 0, compte = true;
+      const tic = () => { if (!compte) return; tours++; if (enLecture()) lus++; requestAnimationFrame(tic); };
+      requestAnimationFrame(tic);
+      const avant = images(); await pause(2000); compte = false;
+      return Object.assign({ images: images() - avant, tours_moteur_web: tours, tours_en_lecture: lus }, etat ? etat() : null);
+    };
+    const essais = [await fenetre()];
+    const dernier = () => essais[essais.length - 1], fige = () => essais.some(x => x.images < 2 && x.tours_en_lecture >= 20);
+    while (dernier().images < 2 && !fige() && essais.length < 12) { await pause(1000); essais.push(await fenetre()); }
+    return essais;
+  }
+  const direCadence = essais => essais.map(x => x.images + ' image(s) pour ' + x.tours_moteur_web + ' tours du moteur web, dont ' + x.tours_en_lecture + ' en lecture').join(' ; ') + ' — par fenêtres de 2 s';
   /* L'atlas 3D dans le WebKit du simulateur : il doit se monter, dessiner, et ne laisser aucune erreur à la carte
      graphique ; sur un exercice, le mouvement doit tourner. Sinon la compilation échoue (CAPTURE:erreur), et rien
      n'est envoyé sur App Store Connect. Si le simulateur ne donne pas WebGL 2, on le dit sans échouer : l'atlas
@@ -53,11 +80,17 @@
       console.log("CAPTURE:erreur l'atlas 3D ne se monte pas dans ce WebKit (" + quoi + ' ; ' + message + ' ; carte : ' + carte + ')'); return;
     }
     const pret = Date.now() - debut, toile = document.querySelector('#atlas-scene canvas'), gl = toile && toile.getContext('webgl2');
-    const i0 = atlasMonte.atlas.mesures().images; await pause(2000);
+    // Sur un exercice, la cadence est jugée (voir cadenceDuMouvement) ; la carte, immobile, n'est que notée.
+    const vue = atlasMonte, compter = () => vue.atlas.mesures().images;
+    const essais = exercice ? await cadenceDuMouvement(compter, () => { if (vue.lecture) vue.lecture(true); }, () => !vue.lecture || vue.lecture())
+      : await (async () => { const i0 = compter(); await pause(2000); return [{ images: compter() - i0 }]; })();
+    if (!atlasMonte) { console.log("CAPTURE:erreur l'atlas 3D s'est refermé pendant la mesure (" + quoi + ')'); return; }
     const m = atlasMonte.atlas.mesures(), e = atlasMonte.etat(), erreurGl = gl ? gl.getError() : -1;
-    const bilan = { pret_ms: pret, images_en_2s: m.images - i0, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau, mode: e.mode,
+    const bilan = { pret_ms: pret, images_en_2s: essais[essais.length - 1].images, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau, mode: e.mode,
       toile: m.largeur + 'x' + m.hauteur, pixels: m.pixels, anime: !!(atlasMonte.animation && atlasMonte.animation()), titre: (document.getElementById('titre-atlas') || {}).textContent, erreur_gl: erreurGl,
       premier_sommet: m.premierSommet == null ? 'inconnu' : m.premierSommet, carte };
+    if (exercice) bilan.tours_moteur_web_en_2s = essais[essais.length - 1].tours_moteur_web;
+    if (essais.length > 1) bilan.essais_cadence = essais;
     // Mesure comparée, sur la même machine et dans la même minute : l'écorché sans peau (0) et la peau entière (2),
     // que l'appli ne propose plus, face à l'apparence de l'appli (1, mesurée ci-dessus). Les machines de compilation
     // vont du simple au quintuple d'une fois sur l'autre : seule cette comparaison dit ce que coûte une apparence.
@@ -75,7 +108,7 @@
     if (erreurGl) fautes.push('erreur de la carte graphique ' + erreurGl);
     if (gl && gl.isContextLost()) fautes.push('contexte graphique perdu');
     if (exercice && !bilan.anime) fautes.push("l'exercice n'est pas animé");
-    if (exercice && bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
+    if (exercice && bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + direCadence(essais) + ')');
     if (exercice && e.mode !== 'exercice') fautes.push('mode ' + e.mode + " au lieu d'« exercice »");
     console.log((fautes.length ? "CAPTURE:erreur l'atlas 3D (" + quoi + ') : ' + fautes.join(' ; ') + ' ' : 'CAPTURE:' + quoi + '-ok ') + JSON.stringify(bilan));
   }
@@ -97,19 +130,25 @@
       console.log("CAPTURE:erreur la fiche d'un exercice ne montre pas son mouvement dans ce WebKit (cadre : " + !!document.getElementById('fiche-exo-3d') + ' ; repli sur la photo : ' + !!document.querySelector('#fiche-exo-media .fiche-exo-image') + ')'); return;
     }
     const pret = Date.now() - debut, a = ficheMouvement.apercu.atlas, toile = document.querySelector('#fiche-exo-3d canvas'), gl = toile && toile.getContext('webgl2');
-    // Le simulateur peut demander moins d'animations : le mouvement est lancé pour être mesuré.
-    ficheMouvement.voulu = true; ficheMouvement.apercu.lecture(true);
-    const i0 = a.mesures().images; await pause(2000);
+    // Le simulateur peut demander moins d'animations : le mouvement est lancé pour être mesuré (voir cadenceDuMouvement).
+    // Chaque essai note aussi ce que l'appli pense du cadre : visible ou non, en lecture ou non.
+    const fiche = ficheMouvement, cadre = document.getElementById('fiche-exo-3d');
+    const essais = await cadenceDuMouvement(() => a.mesures().images,
+      () => { if (ficheMouvement === fiche) { fiche.voulu = true; fiche.apercu.lecture(true); } },
+      () => ficheMouvement === fiche && fiche.apercu.lecture(),
+      () => ({ en_lecture: ficheMouvement === fiche && !!fiche.apercu.lecture(), cadre_visible: typeof cadreFicheVisible === 'function' && cadre ? cadreFicheVisible(cadre) : null, page_cachee: document.hidden }));
+    if (ficheMouvement !== fiche) { console.log("CAPTURE:erreur la fiche d'un exercice (atlas-fiche) : le mouvement a été démonté pendant la mesure " + JSON.stringify(essais)); return; }
     const m = a.mesures(), erreurGl = gl ? gl.getError() : -1, boite = toile.getBoundingClientRect();
-    const bilan = { pret_ms: pret, images_en_2s: m.images - i0, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau,
+    const bilan = { pret_ms: pret, images_en_2s: essais[essais.length - 1].images, tours_moteur_web_en_2s: essais[essais.length - 1].tours_moteur_web, dernier_dessin_ms: Math.round(m.dernierTempsMs * 10) / 10, appels: m.appelsDeDessin, peau: m.peau,
       toile: m.largeur + 'x' + m.hauteur, pixels: m.pixels, anime: !!ficheMouvement.apercu.anime, titre: (document.getElementById('titre-fiche-exercice') || {}).textContent, erreur_gl: erreurGl,
       premier_sommet: m.premierSommet == null ? 'inconnu' : m.premierSommet, visible: boite.width > 100 && boite.height > 100 && boite.top < innerHeight };
+    if (essais.length > 1) bilan.essais_cadence = essais;
     const fautes = [];
     if (m.images < 1) fautes.push('aucune image dessinée');
     if (erreurGl) fautes.push('erreur de la carte graphique ' + erreurGl);
     if (gl && gl.isContextLost()) fautes.push('contexte graphique perdu');
     if (!bilan.anime) fautes.push("l'exercice n'est pas animé");
-    if (bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + bilan.images_en_2s + ' image en 2 s)');
+    if (bilan.images_en_2s < 2) fautes.push('le mouvement ne tourne pas (' + direCadence(essais) + ')');
     if (m.peau !== 1) fautes.push('peau ' + m.peau + ' au lieu de la peau partielle');
     // La peau gardée a la teinte du corps (version de l'appli web qui sait le dire) : ni teinte de chair, ni autre gris.
     if (a.apparence) {
@@ -293,11 +332,16 @@
       // L'annonce attend que l'écran soit vraiment peint (polices chargées,
       // deux images rendues) : une capture prise avant montrait une page blanche.
       // L'atlas se charge puis se dessine : son annonce attend qu'il soit vérifié (15 s au plus), et l'écran suivant
-      // vient toujours 24 s après le début de celui-ci, pour rester dans le minutage de la capture.
+      // vient 24 s après le début de celui-ci, pour rester dans le minutage de la capture — mais jamais avant que
+      // l'atlas ait rendu son verdict (75 s au plus : une mesure refaite sur une machine qui cale prend ce temps-là ;
+      // passer à l'écran suivant refermerait l'atlas sous la mesure).
       setTimeout(() => {
         const peint = () => new Promise(fin => requestAnimationFrame(() => requestAnimationFrame(fin)));
-        const avant = atlas && pret ? Promise.race([pret, new Promise(fin => setTimeout(fin, 15000))]) : Promise.resolve();
-        avant.then(() => document.fonts && document.fonts.ready).then(peint).then(() => { console.log('CAPTURE:' + ecran); setTimeout(suivant, atlas ? Math.max(3000, 24000 - (Date.now() - debut)) : 22200); });
+        const borne = ms => (atlas && pret ? Promise.race([pret, new Promise(fin => setTimeout(fin, ms))]) : Promise.resolve());
+        borne(15000).then(() => document.fonts && document.fonts.ready).then(peint).then(() => {
+          console.log('CAPTURE:' + ecran);
+          borne(75000).then(() => setTimeout(suivant, atlas ? Math.max(3000, 24000 - (Date.now() - debut)) : 22200));
+        });
       }, 1800);
     })();
   }, 3500));
