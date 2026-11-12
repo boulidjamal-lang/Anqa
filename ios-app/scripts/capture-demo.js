@@ -19,7 +19,10 @@
     MONTRER['atlas-exercice'] = () => montrerAtlas(squat());
     // La fiche d'un exercice montre son mouvement d'elle-même, quand la version embarquée de l'appli web le fait
     // (captures-simulateur.sh ajoute le même écran quand index.html contient monterMouvementFiche).
-    if (typeof monterMouvementFiche === 'function') { ECRANS.push('atlas-fiche'); MONTRER['atlas-fiche'] = () => montrerFicheAtlas(squat()); }
+    // La fiche montrée est celle du développé militaire (à défaut, le squat) : un geste bras au-dessus de la tête, là où
+    // les épaules et la course de la barre se jugent le mieux.
+    const militaire = () => (toutesLesExercices().find(e => e.id === 'e39' && mouvementExercice(e.id)) || toutesLesExercices().find(e => /d[ée]velopp[ée] militaire/i.test(e.nom) && mouvementExercice(e.id)) || {}).id || squat();
+    if (typeof monterMouvementFiche === 'function') { ECRANS.push('atlas-fiche'); MONTRER['atlas-fiche'] = () => montrerFicheAtlas(militaire()); }
   }
   function fermerFenetres() {
     // L'atlas rend sa carte graphique en se fermant (retirer la classe ne suffirait pas) ; le mouvement de la fiche aussi.
@@ -145,6 +148,34 @@
         }
       }
     } catch (e) { fautes.push('soulevé de terre : ' + String(e && e.message || e)); }
+    // Le développé militaire et la traction, calculés dans ce moteur. Développé : la barre contourne le visage et les bras
+    // finissent tendus. Traction : pendu bras tendus, mains sur la barre fixe (2,42 m). Jugés seulement avec la version de
+    // l'appli web qui règle le développé en poses clés (les versions d'avant ne le faisaient pas : rien à leur reprocher ici).
+    try {
+      const M = window.AnqaMouvements, moteur = bilan.reprise && ficheMouvement.apercu.atlas;
+      if (M && M.Corps && moteur && moteur.squelette) {
+        const corps = new M.Corps(moteur.squelette, moteur.peau ? regions => moteur.peau(regions) : null);
+        const t0 = performance.now(), d = M.definir('developpe epaules barre', corps, M.TEINTES.sombre), duree = performance.now() - t0, coudes = [];
+        let tete = Infinity;
+        for (let i = 0; i <= 10; i++) {
+          const info = corps.poser(M.poseA(d, 0, i / 10)), pr = info.prises.G;
+          coudes.push(Math.round(info.angles.G.coude));
+          if (corps.peauPosee) corps.peauPosee(['tete'], (x, y, z) => { tete = Math.min(tete, Math.hypot(y - pr.y, z - pr.z) - 0.0135); }, true);
+        }
+        const source = moteur.peau ? moteur.peau(['epaule']) : null;
+        bilan.militaire = { poses_cles: d.cles ? d.cles.length : 0, regle_en_ms: Math.round(duree), coudes, tete_au_plus_pres_mm: isFinite(tete) ? Math.round(tete * 1000) : null, epaule_par_la_corde: !!(source && source.C) };
+        const dt = M.definir('traction', corps, M.TEINTES.sombre), surBarre = info => Math.round(Math.hypot(info.prises.G.y - 2.42, info.prises.G.z - 0.02) * 1000);
+        const pendu = corps.poser(M.poseA(dt, 0, 0)), coudePendu = Math.round(pendu.angles.G.coude), mains = [surBarre(pendu), surBarre(corps.poser(M.poseA(dt, 0, 0.5))), surBarre(corps.poser(M.poseA(dt, 0, 1)))];
+        bilan.traction = { coude_pendu: coudePendu, main_a_mm_de_la_barre: mains };
+        if (d.cles) {
+          if (coudes[10] > 15 || coudes[0] > 152) fautes.push('développé militaire : coudes ' + coudes.join(', ') + ' (attendu : tendus en haut)');
+          if (!(tete > 0.012)) fautes.push('développé militaire : la barre passe à ' + Math.round(tete * 1000) + ' mm de la tête');
+          if (!bilan.militaire.epaule_par_la_corde) fautes.push("le moteur ne donne pas la part « par la corde » de l'épaule");
+          if (coudePendu > 16 || coudePendu < 3) fautes.push('traction : pendu, coude à ' + coudePendu + '°');
+          if (Math.max.apply(null, mains) > 6) fautes.push('traction : mains à ' + mains.join(', ') + ' mm de la barre');
+        }
+      }
+    } catch (e) { fautes.push('développé militaire : ' + String(e && e.message || e)); }
     console.log((fautes.length ? "CAPTURE:erreur la fiche d'un exercice (atlas-fiche) : " + fautes.join(' ; ') + ' ' : 'CAPTURE:atlas-fiche-ok ') + JSON.stringify(bilan));
   }
   function remplirDemo() {
