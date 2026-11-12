@@ -126,6 +126,25 @@
     bilan.reprise = await monte();
     if (!bilan.reprise) fautes.push("le mouvement de la fiche ne reprend pas après l'atlas");
     else { ficheMouvement.voulu = true; ficheMouvement.apercu.lecture(true); }
+    // Le soulevé de terre, calculé dans ce moteur (sans changer d'écran) : sa posture se règle à l'ouverture, sur le corps
+    // et la peau du modèle. Du sol à la position debout, les genoux doivent se tendre sans jamais se verrouiller à
+    // mi-course, et la barre rester près des chevilles. (Version de l'appli web qui règle le geste en poses clés.)
+    try {
+      const M = window.AnqaMouvements, moteur = bilan.reprise && ficheMouvement.apercu.atlas;
+      if (M && M.Corps && moteur && moteur.squelette) {
+        const corps = new M.Corps(moteur.squelette, moteur.peau ? regions => moteur.peau(regions) : null);
+        const t0 = performance.now(), d = M.definir('souleve', corps, M.TEINTES.sombre), duree = performance.now() - t0, genoux = [], barre = [];
+        for (let i = 0; i <= 4; i++) {
+          const info = corps.poser(M.poseA(d, 0, i / 4)), h = info.hanches.G, g = info.genoux.G, c = info.chevilles.G, v1 = h.clone().sub(g), v2 = c.clone().sub(g);
+          genoux.push(Math.round(Math.acos(v1.dot(v2) / v1.length() / v2.length()) * 180 / Math.PI)); barre.push(Math.round((info.prises.G.z - c.z) * 100));
+        }
+        bilan.souleve = { poses_cles: d.cles ? d.cles.length : 0, regle_en_ms: Math.round(duree), genoux, barre_devant_cheville_cm: barre };
+        if (d.cles) {
+          if (!genoux.every((x, i) => !i || x >= genoux[i - 1]) || genoux[0] > 125 || genoux[2] > 160 || genoux[4] < 168) fautes.push('soulevé de terre : genoux ' + genoux.join(', ') + ' (attendu : pliés au sol, encore pliés à mi-course, tendus debout)');
+          if (Math.min.apply(null, barre) < 3 || Math.max.apply(null, barre) > 13) fautes.push('soulevé de terre : la barre s\'écarte des jambes (' + barre.join(', ') + ' cm devant la cheville)');
+        }
+      }
+    } catch (e) { fautes.push('soulevé de terre : ' + String(e && e.message || e)); }
     console.log((fautes.length ? "CAPTURE:erreur la fiche d'un exercice (atlas-fiche) : " + fautes.join(' ; ') + ' ' : 'CAPTURE:atlas-fiche-ok ') + JSON.stringify(bilan));
   }
   function remplirDemo() {
