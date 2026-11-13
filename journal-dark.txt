@@ -1,0 +1,151 @@
+2026-11-13 17:56:16.867 App[15844:51897] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/5277349A-B219-4ED4-853A-8AE666B9F5B1/data/Containers/Data/Application/76D13D05-A910-445A-AFFF-B0659DD8A0A7/Library/Cookies/com.jambou.askesis.binarycookies
+2026-11-13 17:56:17.079 App[15844:51897] KeyboardPlugin: no resize
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  App addListener 96272541
+⚡️  To Native ->  App addListener 96272542
+⚡️  To Native ->  App getLaunchUrl 96272543
+⚡️  To Native ->  Resume intention 96272544
+⚡️  To Native ->  LocalNotifications addListener 96272545
+⚡️  To Native ->  ScreenOrientation lock 96272546
+⚡️  To Native ->  NativePurchases addListener 96272547
+⚡️  TO JS undefined
+⚡️  TO JS {"url":""}
+⚡️  TO JS undefined
+⚡️  WebView loaded
+⚡️  To Native ->  StatusBar setStyle 96272548
+⚡️  To Native ->  Onglets apparence 96272549
+⚡️  To Native ->  Onglets etat 96272550
+⚡️  TO JS {}
+⚡️  To Native ->  KeepAwake keepAwake 96272551
+⚡️  TO JS undefined
+⚡️  TO JS {"page":"repas","actif":true,"onglet":"repas"}
+⚡️  TO JS undefined
+⚡️  To Native ->  ActiviteSeance demarrer 96272552
+⚡️  To Native ->  Onglets addListener 96272553
+⚡️  To Native ->  Onglets addListener 96272554
+⚡️  To Native ->  Onglets addListener 96272555
+⚡️  To Native ->  Onglets addListener 96272556
+⚡️  To Native ->  Onglets selectionner 96272557
+⚡️  To Native ->  Onglets afficher 96272558
+⚡️  To Native ->  Onglets plus 96272559
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Resume publier 96272560
+⚡️  TO JS {"publie":true}
+⚡️  To Native ->  SplashScreen hide 96272561
+⚡️  To Native ->  SplashScreen hide 96272562
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS {"actif":true}
+⚡️  To Native ->  ActiviteSeance terminer 96272563
+⚡️  To Native ->  StatusBar setStyle 96272564
+⚡️  To Native ->  Onglets selectionner 96272565
+⚡️  To Native ->  Onglets afficher 96272566
+⚡️  TO JS {}
+⚡️  To Native ->  Onglets plus 96272567
+⚡️  To Native ->  KeepAwake allowSleep 96272568
+⚡️  To Native ->  Onglets simulerToucher 96272569
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS {"nom":"stats"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Resume publier 96272570
+⚡️  TO JS undefined
+⚡️  TO JS {"publie":true}
+⚡️  To Native ->  Onglets selectionner 96272571
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 96272572
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:onglets-ok
+⚡️  To Native ->  Onglets selectionner 96272573
+⚡️  To Native ->  Onglets plus 96272574
+⚡️  To Native ->  Onglets selectionner 96272575
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 96272576
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets etat 96272577
+⚡️  TO JS {"page":"repas","actif":true,"onglet":"repas"}
+⚡️  [log] - CAPTURE:onglets-sans-boucle
+⚡️  To Native ->  Onglets selectionner 96272578
+⚡️  TO JS undefined
+⚡️  To Native ->  Scanner etat 96272579
+⚡️  TO JS {"camera":false}
+⚡️  [log] - CAPTURE:scanner-ok (caméra : false)
+⚡️  To Native ->  Onglets selectionner 96272580
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:repas
+⚡️  To Native ->  Onglets selectionner 96272581
+⚡️  To Native ->  Onglets plus 96272582
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:seance
+⚡️  To Native ->  Onglets selectionner 96272583
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets plus 96272584
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:stats
+⚡️  To Native ->  Onglets selectionner 96272585
+⚡️  To Native ->  Onglets plus 96272586
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:reglages
+⚡️  To Native ->  Onglets selectionner 96272587
+⚡️  To Native ->  Onglets plus 96272588
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 96272589
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:feuille
+⚡️  To Native ->  Onglets selectionner 96272590
+⚡️  To Native ->  Onglets afficher 96272591
+⚡️  To Native ->  Onglets plus 96272592
+⚡️  To Native ->  ActiviteSeance demarrer 96272593
+⚡️  To Native ->  KeepAwake keepAwake 96272594
+⚡️  To Native ->  Onglets selectionner 96272595
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 96272596
+⚡️  To Native ->  Onglets selectionner 96272597
+⚡️  To Native ->  Onglets afficher 96272598
+⚡️  To Native ->  Onglets plus 96272599
+⚡️  To Native ->  Onglets accessoire 96272600
+⚡️  TO JS {"actif":true}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Resume publier 96272601
+⚡️  TO JS {"publie":true}
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:accessoire
+⚡️  To Native ->  Onglets selectionner 96272602
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 96272603
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:atlas-ok {"pret_ms":1456,"images_en_2s":15,"dernier_dessin_ms":0,"appels":8,"peau":1,"mode":"semaine","toile":"800x1446","pixels":2,"anime":false,"titre":"Atlas musculaire","erreur_gl":0,"premier_sommet":true,"carte":"Apple GPU"}
+⚡️  [log] - CAPTURE:atlas
+⚡️  To Native ->  Onglets selectionner 96272604
+⚡️  To Native ->  Onglets plus 96272605
+⚡️  To Native ->  Onglets accessoire 96272606
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:atlas-exercice-ok {"pret_ms":700,"images_en_2s":100,"dernier_dessin_ms":1,"appels":8,"peau":1,"mode":"exercice","toile":"800x1516","pixels":2,"anime":true,"titre":"Squat avec barre","erreur_gl":0,"premier_sommet":true,"carte":"Apple GPU","tours_moteur_web_en_2s":100,"images_sans_peau_en_2s":76,"images_peau_entiere_en_2s":88,"triangles_par_image":494583,"erreur_gl_apparences":0}
+⚡️  [log] - CAPTURE:atlas-exercice
+⚡️  To Native ->  Onglets selectionner 96272607
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:atlas-fiche-ok {"pret_ms":302,"images_en_2s":118,"tours_moteur_web_en_2s":118,"dernier_dessin_ms":0,"appels":8,"peau":1,"toile":"760x760","pixels":2,"anime":true,"titre":"Développé militaire","erreur_gl":0,"premier_sommet":true,"visible":true,"teinte_peau":"#b3b5be","atlas_devant":true,"reprise":true,"souleve":{"poses_cles":11,"regle_en_ms":48,"genoux":[103,121,135,148,174],"barre_devant_cheville_cm":[7,6,6,6,7]},"militaire":{"poses_cles":11,"regle_en_ms":25,"coudes":[150,144,140,137,130,121,109,95,78,58,12],"tete_au_plus_pres_mm":25,"epaule_par_la_corde":true},"traction":{"coude_pendu":11,"main_a_mm_de_la_barre":[1,0,0]}}
+⚡️  [log] - CAPTURE:atlas-fiche
+⚡️  To Native ->  Onglets selectionner 96272608
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:miniatures-ok {"apres_ms":2556,"posees":2,"jouent":2,"sources":["assets/atlas/vignettes/e265.sombre.mp4","assets/atlas/vignettes/e1.sombre.mp4"],"erreurs":[],"images":40,"images_chargees":14,"mouvement_reduit":false}
+⚡️  [log] - CAPTURE:fin
+com.jambou.askesis: 15844
