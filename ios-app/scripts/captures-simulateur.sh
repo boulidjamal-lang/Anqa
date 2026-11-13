@@ -54,6 +54,12 @@ if [ -d "$APP/public/assets/atlas" ]; then
   ECRANS="$ECRANS $ECRANS_ATLAS"; echo "Atlas 3D embarqué : écrans de plus ($ECRANS_ATLAS)."
 fi
 DERNIER_ATLAS="${ECRANS_ATLAS##* }"
+# Les miniatures animées des exercices : l'app les vérifie après le dernier écran (une boucle doit jouer dans la
+# bibliothèque) et rend son verdict dans le journal.
+MINIATURES=""
+if [ -d "$APP/public/assets/atlas/vignettes" ] && grep -q "animationVignette3D" "$APP/public/index.html" 2>/dev/null; then
+  MINIATURES=oui; echo "Miniatures animées embarquées : vérifiées après le dernier écran."
+fi
 
 DERNIERE_EMPREINTE=""
 photographier() {
@@ -104,6 +110,11 @@ for apparence in light dark; do
     fin=$(( $(date +%s) + 150 ))
     while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:$DERNIER_ATLAS-(ok|sans-webgl2)|CAPTURE:erreur" "$journal"; do sleep 1; done
   fi
+  # Puis le verdict des miniatures (l'app les vérifie 24 s au plus après la dernière capture, en 20 s au plus).
+  if [ -n "$MINIATURES" ]; then
+    fin=$(( $(date +%s) + 90 ))
+    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:miniatures-(ok|fixes|absentes)|CAPTURE:erreur" "$journal"; do sleep 1; done
+  fi
   sleep 3
   kill "$PID" 2>/dev/null || true
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -124,6 +135,14 @@ if [ -n "$ATLAS" ]; then
     done
   done
   if grep -q "sans-webgl2" "$SORTIE"/journal-*.txt; then echo "::warning::atlas 3D non vérifié : ce simulateur ne donne pas WebGL 2"; fi
+fi
+# Des miniatures animées embarquées doivent avoir rendu leur verdict à chaque passe : une boucle qui joue (ou, appareil
+# réglé sur « réduire les animations », les images fixes affichées). Sinon la compilation s'arrête là.
+if [ -n "$MINIATURES" ]; then
+  grep -h "CAPTURE:miniatures" "$SORTIE"/journal-*.txt || true
+  for journal in "$SORTIE"/journal-*.txt; do
+    grep -Eq "CAPTURE:miniatures-(ok|fixes)" "$journal" || { echo "::error::$(basename "$journal") : les miniatures animées n'ont pas rendu leur verdict"; exit 1; }
+  done
 fi
 # La barre native et la page ne doivent pas se renvoyer la balle : une
 # vingtaine d'appels « selectionner » par passe, pas des centaines.

@@ -305,9 +305,37 @@
     } else console.log('CAPTURE:onglets-sans-boucle');
     allerA('repas');
   }
+  /* Les miniatures animées des exercices, quand la version embarquée de l'appli web les a : dans la bibliothèque, la
+     boucle d'un exercice à l'écran doit se mettre à jouer (fichier de l'app lu par morceaux, lecture sans geste de
+     l'utilisateur), et les images fixes s'afficher. Vérifié après le dernier écran, pour ne rien changer au minutage
+     des captures. Sinon la compilation échoue (CAPTURE:erreur). Appareil réglé sur « réduire les animations » :
+     l'appli ne lance pas les boucles, c'est dit (CAPTURE:miniatures-fixes). */
+  async function verifierMiniatures() {
+    if (typeof animationVignette3D !== 'function') { console.log('CAPTURE:miniatures-absentes (version sans miniatures animées)'); return; }
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    fermerFenetres();
+    allerA('seance'); ouvrirBibliotheque();
+    const debut = Date.now(), liste = () => document.getElementById('picker-liste-exercices'), animees = vignettes3DAnimees();
+    let videos = [];
+    if (!animees) await pause(1500);
+    while (animees && Date.now() - debut < 20000) {
+      videos = [...liste().querySelectorAll('video.vignette-video')];
+      if (videos.some(v => v.classList.contains('prete'))) break;
+      await pause(250);
+    }
+    const imgs = [...liste().querySelectorAll('img.vignette-3d')];
+    const bilan = { apres_ms: Date.now() - debut, posees: videos.length, jouent: videos.filter(v => v.classList.contains('prete')).length,
+      sources: videos.slice(0, 2).map(v => v.getAttribute('src')), erreurs: videos.map(v => v.error && v.error.code).filter(Boolean),
+      images: imgs.length, images_chargees: imgs.filter(i => i.complete && i.naturalWidth > 0).length, mouvement_reduit: !vignettes3DAnimees() };
+    fermerFenetres();
+    const fautes = [];
+    if (!bilan.images_chargees) fautes.push("aucune image fixe ne s'affiche");
+    if (!bilan.mouvement_reduit && !bilan.jouent) fautes.push("aucune boucle ne joue");
+    console.log((fautes.length ? 'CAPTURE:erreur les miniatures des exercices : ' + fautes.join(' ; ') + ' ' : bilan.mouvement_reduit ? 'CAPTURE:miniatures-fixes ' : 'CAPTURE:miniatures-ok ') + JSON.stringify(bilan));
+  }
   // Captures pilotées de l'extérieur (scripts/captures-ios.js de mon-coach) : les
   // données et les écrans sont exposés, la boucle automatique ne tourne pas.
-  window.__demo = { remplirDemo, ECRANS, MONTRER, fermerFenetres };
+  window.__demo = { remplirDemo, ECRANS, MONTRER, fermerFenetres, verifierMiniatures };
   if (window.__captureManuel) return;
   window.addEventListener('load', () => setTimeout(async () => {
     // Thème « auto » : l'app suit le mode clair ou sombre du simulateur.
@@ -318,7 +346,10 @@
     catch (e) { console.log('CAPTURE:erreur le scanner de l\'app ne répond pas : ' + e.message); }
     let i = 0;
     (function suivant() {
-      if (i >= ECRANS.length) { console.log('CAPTURE:fin'); return; }
+      if (i >= ECRANS.length) {
+        verifierMiniatures().catch(e => console.log('CAPTURE:erreur les miniatures des exercices : ' + e.message)).then(() => console.log('CAPTURE:fin'));
+        return;
+      }
       const ecran = ECRANS[i++], debut = Date.now(), atlas = /^atlas/.test(ecran);
       let pret = null;
       try {
