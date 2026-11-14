@@ -25,6 +25,7 @@ limitée à 3 essais par mois. La vente de Pro viendra dans une mise à jour
 | Écran allumé pendant la séance | module natif |
 | Scan de code-barres instantané | scanner plein écran d'iOS |
 | Pas et poids automatiques | Apple Santé (Profil › Réglages › Appareils), jamais d'écrasement d'une saisie |
+| Balance Withings (poids, masse grasse, muscle, os, eau) | la page Withings s'ouvre dans une feuille de l'app ; son adresse de retour (le site) n'y est jamais chargée, le code repart au serveur (fonction `withings` du dépôt mon-coach). Montrée au compte qui peut s'en servir et à l'administrateur |
 | Partage de l'image du bilan, « Enregistrer l'image » | feuille de partage d'iOS |
 | Widgets « Ma journée » (aussi sur l'écran verrouillé), « Prochaine séance », « Poids » | WidgetKit ; la page publie son résumé dans le groupe d'apps, le widget se redessine à chaque changement et à minuit |
 | Siri et Raccourcis : « Démarre ma séance », « Ajoute un verre d'eau », « Mon bilan » | App Intents ; les deux premiers ouvrent l'app sur le geste, le troisième répond sans l'ouvrir |
@@ -260,6 +261,8 @@ via Apple.
   - `App/Resume.swift` : le résumé publié pour les widgets et Siri, et
     l'intention laissée par Siri ou un widget ;
   - `App/Entrainements.swift` : la séance terminée inscrite dans Santé ;
+  - `App/ConnexionWeb.swift` : la feuille de connexion à un service tiers
+    (la balance Withings), arrêtée sur l'adresse de retour ;
   - `App/Intentions.swift` : les raccourcis Siri (App Intents) ;
   - `Partage/` : ce que l'app et l'extension partagent (attributs de la séance
     en direct, résumé, groupe d'apps `group.com.jambou.askesis`) ;

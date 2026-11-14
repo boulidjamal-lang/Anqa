@@ -333,9 +333,46 @@
     if (!bilan.mouvement_reduit && !bilan.jouent) fautes.push("aucune boucle ne joue");
     console.log((fautes.length ? 'CAPTURE:erreur les miniatures des exercices : ' + fautes.join(' ; ') + ' ' : bilan.mouvement_reduit ? 'CAPTURE:miniatures-fixes ' : 'CAPTURE:miniatures-ok ') + JSON.stringify(bilan));
   }
+  /* La feuille de connexion de la balance Withings (module natif ConnexionWeb), quand la version embarquée de l'appli
+     web s'en sert : 1) une adresse de retour reçue d'emblée est rendue à la page sans être chargée ; 2) de même après
+     une redirection du serveur (le site sans « / » final renvoie vers l'adresse de retour, comme Withings rend la
+     main) ; 3) la vraie page de connexion Withings s'ouvre dans la feuille (capture d'écran), puis fermer() la
+     referme et l'appel rend { annule: true }. Ce qui passe par le réseau (2 et la page Withings) est dit hors ligne
+     s'il ne vient pas, sans faute ; une feuille qui ne rend pas l'adresse ou ne se ferme pas fait échouer la compilation. */
+  async function verifierConnexionWeb() {
+    if (typeof connexionWithingsNatif !== 'function') { console.log("CAPTURE:connexion-web-absente (version sans connexion Withings dans l'app)"); return; }
+    const natif = window.AppNatif, m = natif && natif.ConnexionWeb;
+    if (!m || !natif.disponible('ConnexionWeb')) { console.log("CAPTURE:erreur la feuille de connexion Withings (module ConnexionWeb) manque à l'app"); return; }
+    const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    const borne = (p, ms) => Promise.race([p, pause(ms).then(() => ({ delai: true }))]);
+    const retour = WITHINGS_REDIRECT_URI, bilan = {};
+    fermerFenetres();
+    // 1) Adresse de retour d'emblée.
+    let r = await borne(m.ouvrir({ url: retour + '?code=essai-direct&state=s1', retour, titre: 'Essai' }), 10000);
+    if (r.delai) { await m.fermer().catch(() => {}); await pause(1500); }
+    bilan.directe = r.url || (r.delai ? 'sans réponse' : r);
+    if (r.url !== retour + '?code=essai-direct&state=s1') { console.log("CAPTURE:erreur la feuille de connexion ne rend pas l'adresse de retour : " + JSON.stringify(bilan)); return; }
+    await pause(1500);
+    // 2) Après une redirection du serveur.
+    r = await borne(m.ouvrir({ url: retour.replace(/\/$/, '') + '?code=essai-redirige&state=s2', retour, titre: 'Essai' }), 20000);
+    if (r.delai) { await m.fermer().catch(() => {}); bilan.redirection = 'hors ligne'; }
+    else if (r.url === retour + '?code=essai-redirige&state=s2') bilan.redirection = 'ok';
+    else { console.log("CAPTURE:erreur après une redirection, la feuille ne rend pas l'adresse de retour : " + JSON.stringify(r)); return; }
+    await pause(1500);
+    // 3) La page de connexion Withings, le temps d'une capture, puis fermée par fermer().
+    const ouverte = m.ouvrir({ url: urlAutorisationWithings('capture-simulateur'), retour, titre: 'Withings' });
+    await pause(9000);
+    console.log('CAPTURE:withings-feuille');
+    await pause(15000);
+    await m.fermer();
+    r = await borne(ouverte, 5000);
+    bilan.fermee = r.annule === true;
+    if (!bilan.fermee) { console.log('CAPTURE:erreur la feuille de connexion ne se ferme pas : ' + JSON.stringify(r)); return; }
+    console.log('CAPTURE:connexion-web-ok ' + JSON.stringify(bilan));
+  }
   // Captures pilotées de l'extérieur (scripts/captures-ios.js de mon-coach) : les
   // données et les écrans sont exposés, la boucle automatique ne tourne pas.
-  window.__demo = { remplirDemo, ECRANS, MONTRER, fermerFenetres, verifierMiniatures };
+  window.__demo = { remplirDemo, ECRANS, MONTRER, fermerFenetres, verifierMiniatures, verifierConnexionWeb };
   if (window.__captureManuel) return;
   window.addEventListener('load', () => setTimeout(async () => {
     // Thème « auto » : l'app suit le mode clair ou sombre du simulateur.
@@ -347,7 +384,9 @@
     let i = 0;
     (function suivant() {
       if (i >= ECRANS.length) {
-        verifierMiniatures().catch(e => console.log('CAPTURE:erreur les miniatures des exercices : ' + e.message)).then(() => console.log('CAPTURE:fin'));
+        verifierMiniatures().catch(e => console.log('CAPTURE:erreur les miniatures des exercices : ' + e.message))
+          .then(() => verifierConnexionWeb().catch(e => console.log('CAPTURE:erreur la feuille de connexion Withings : ' + (e && e.message))))
+          .then(() => console.log('CAPTURE:fin'));
         return;
       }
       const ecran = ECRANS[i++], debut = Date.now(), atlas = /^atlas/.test(ecran);

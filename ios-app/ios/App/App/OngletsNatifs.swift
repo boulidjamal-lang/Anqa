@@ -39,6 +39,7 @@ class PontAskesis: CAPBridgeViewController {
         bridge?.registerPluginInstance(ScannerCodes())
         bridge?.registerPluginInstance(ResumePlugin())
         bridge?.registerPluginInstance(EntrainementsPlugin())
+        bridge?.registerPluginInstance(ConnexionWebPlugin())
     }
 }
 

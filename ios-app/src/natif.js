@@ -9,7 +9,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const NOMS = ['App', 'Browser', 'Filesystem', 'Haptics', 'Keyboard', 'LocalNotifications', 'ScreenOrientation', 'Share',
   'SplashScreen', 'StatusBar', 'KeepAwake', 'CapacitorBarcodeScanner', 'Health', 'NativePurchases', 'Onglets', 'ActiviteSeance', 'Scanner',
-  'Resume', 'Entrainements'];
+  'Resume', 'Entrainements', 'ConnexionWeb'];
 
 if (Capacitor.isNativePlatform()) {
   const natif = { plateforme: Capacitor.getPlatform(), version: __VERSION_APP__ };

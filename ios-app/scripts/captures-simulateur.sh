@@ -61,6 +61,13 @@ if [ -d "$APP/public/assets/atlas/vignettes" ] && grep -q "animationVignette3D" 
   MINIATURES=oui; echo "Miniatures animées embarquées : vérifiées après le dernier écran."
 fi
 
+# La feuille de connexion Withings (module natif) : l'app la vérifie après les miniatures, puis l'ouvre sur la vraie
+# page Withings le temps d'une capture, et rend son verdict dans le journal.
+CONNEXION_WEB=""
+if grep -q "connexionWithingsNatif" "$APP/public/index.html" 2>/dev/null; then
+  CONNEXION_WEB=oui; echo "Connexion Withings dans l'app : feuille vérifiée après les miniatures."
+fi
+
 DERNIERE_EMPREINTE=""
 photographier() {
   for essai in 1 2 3; do
@@ -115,6 +122,14 @@ for apparence in light dark; do
     fin=$(( $(date +%s) + 90 ))
     while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:miniatures-(ok|fixes|absentes)|CAPTURE:erreur" "$journal"; do sleep 1; done
   fi
+  # Puis la feuille de connexion Withings : photographiée ouverte sur la page Withings (l'app la garde 15 s), et son verdict.
+  if [ -n "$CONNEXION_WEB" ]; then
+    fin=$(( $(date +%s) + 60 ))
+    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:withings-feuille|CAPTURE:connexion-web|CAPTURE:erreur" "$journal"; do sleep 1; done
+    if grep -q "CAPTURE:withings-feuille" "$journal"; then photographier "$SORTIE/$apparence-$((k + 1))-withings.png"; fi
+    fin=$(( $(date +%s) + 40 ))
+    while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:connexion-web-(ok|absente)|CAPTURE:erreur" "$journal"; do sleep 1; done
+  fi
   sleep 3
   kill "$PID" 2>/dev/null || true
   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -143,6 +158,14 @@ if [ -n "$MINIATURES" ]; then
   for journal in "$SORTIE"/journal-*.txt; do
     grep -Eq "CAPTURE:miniatures-(ok|fixes)" "$journal" || { echo "::error::$(basename "$journal") : les miniatures animées n'ont pas rendu leur verdict"; exit 1; }
   done
+fi
+# La feuille de connexion Withings doit avoir rendu l'adresse de retour et s'être refermée, à chaque passe.
+if [ -n "$CONNEXION_WEB" ]; then
+  grep -h "CAPTURE:connexion-web" "$SORTIE"/journal-*.txt || true
+  for journal in "$SORTIE"/journal-*.txt; do
+    grep -q "CAPTURE:connexion-web-ok" "$journal" || { echo "::error::$(basename "$journal") : la feuille de connexion Withings n'a pas rendu son verdict"; exit 1; }
+  done
+  if grep -q '"redirection":"hors ligne"' "$SORTIE"/journal-*.txt; then echo "::warning::feuille Withings : la redirection n'a pas été vérifiée (réseau du simulateur)"; fi
 fi
 # La barre native et la page ne doivent pas se renvoyer la balle : une
 # vingtaine d'appels « selectionner » par passe, pas des centaines.
