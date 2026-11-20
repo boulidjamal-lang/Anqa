@@ -347,9 +347,17 @@
     const borne = (p, ms) => Promise.race([p, pause(ms).then(() => ({ delai: true }))]);
     const retour = WITHINGS_REDIRECT_URI, bilan = {};
     fermerFenetres();
-    // 1) Adresse de retour d'emblée.
-    let r = await borne(m.ouvrir({ url: retour + '?code=essai-direct&state=s1', retour, titre: 'Essai' }), 10000);
-    if (r.delai) { await m.fermer().catch(() => {}); await pause(1500); }
+    // 1) Adresse de retour d'emblée. La première feuille fait démarrer à WebKit une session à part (rien n'en est
+    //    gardé) : sur une machine de compilation qui cale, ce démarrage a passé 10 s (run 74, passe claire ; la même
+    //    version répondait une heure plus tôt, et dans la passe sombre). Un délai dépassé est donc refait une fois,
+    //    la feuille refermée, avec 30 s : une feuille qui ne rend jamais l'adresse échoue toujours.
+    const directe = async ms => {
+      const rendu = await borne(m.ouvrir({ url: retour + '?code=essai-direct&state=s1', retour, titre: 'Essai' }), ms);
+      if (rendu.delai) { await m.fermer().catch(() => {}); await pause(1500); }
+      return rendu;
+    };
+    let r = await directe(10000);
+    if (r.delai) { bilan.directe_refaite = true; r = await directe(30000); }
     bilan.directe = r.url || (r.delai ? 'sans réponse' : r);
     if (r.url !== retour + '?code=essai-direct&state=s1') { console.log("CAPTURE:erreur la feuille de connexion ne rend pas l'adresse de retour : " + JSON.stringify(bilan)); return; }
     await pause(1500);

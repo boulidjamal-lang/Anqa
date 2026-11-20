@@ -123,8 +123,9 @@ for apparence in light dark; do
     while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:miniatures-(ok|fixes|absentes)|CAPTURE:erreur" "$journal"; do sleep 1; done
   fi
   # Puis la feuille de connexion Withings : photographiée ouverte sur la page Withings (l'app la garde 15 s), et son verdict.
+  # Elle s'ouvre au plus 75 s après le verdict des miniatures (premier essai refait, redirection lente) : 100 s ici.
   if [ -n "$CONNEXION_WEB" ]; then
-    fin=$(( $(date +%s) + 60 ))
+    fin=$(( $(date +%s) + 100 ))
     while [ "$(date +%s)" -lt "$fin" ] && ! grep -Eq "CAPTURE:withings-feuille|CAPTURE:connexion-web|CAPTURE:erreur" "$journal"; do sleep 1; done
     if grep -q "CAPTURE:withings-feuille" "$journal"; then photographier "$SORTIE/$apparence-$((k + 1))-withings.png"; fi
     fin=$(( $(date +%s) + 40 ))
