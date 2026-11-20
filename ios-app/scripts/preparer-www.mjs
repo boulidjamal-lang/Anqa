@@ -61,15 +61,15 @@ if (existsSync(join(SOURCE, 'assets', 'styles.css'))) cpSync(join(SOURCE, 'asset
 // L'atlas musculaire 3D (moteur, mouvements, modèle et sa notice de licence) : copié quand la version embarquée l'a.
 // Tout est local : l'atlas s'ouvre sans réseau.
 if (existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', 'atlas'), join(WWW, 'assets', 'atlas'), { recursive: true });
-// Pas de assets/miniatures : ces mini-vidéos viennent de SmartWorkout, que l'app
-// n'affiche pas (voir MEDIAS_TIERS dans index.html). Leurs identifiants sont
-// vidés aussi : l'app n'embarque aucune référence à ces vidéos.
+// Les vidéos SmartWorkout (contenus d'un autre éditeur, sans licence) ne sont pas dans l'app. Le site a retiré leurs
+// tables de assets/donnees.js ; une version du site plus ancienne les a encore : elles sont alors vidées ici.
 {
   const f = join(WWW, 'assets', 'donnees.js');
   let d = readFileSync(f, 'utf8');
   for (const nom of ['VIDEOS_SMARTWORKOUT', 'SW_IMAGE_VERS_VIDEO']) {
+    if (!new RegExp('^const ' + nom + '\\b', 'm').test(d)) continue;
     const ligne = new RegExp('^const ' + nom + ' = \\{.*\\};$', 'm');
-    if (!ligne.test(d)) echec(`${nom} introuvable dans assets/donnees.js : mets à jour preparer-www.mjs.`);
+    if (!ligne.test(d)) echec(`${nom} n'a plus la forme attendue dans assets/donnees.js : mets à jour preparer-www.mjs.`);
     d = d.replace(ligne, `const ${nom} = {};`);
   }
   writeFileSync(f, d);
