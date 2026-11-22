@@ -23,7 +23,8 @@ for rt, appareils in json.load(sys.stdin)["devices"].items():
         continue
     version = [int(x) for x in re.findall(r"\d+", rt.split("iOS")[-1])]
     for a in appareils:
-        if a["name"].startswith("iPhone"):
+        # Un seul écran : les modèles pliables (« Duo », « Fold ») en ont deux, et la capture ne sait pas lequel prendre.
+        if a["name"].startswith("iPhone") and not re.search(r"Duo|Fold|Flip", a["name"]):
             choix.append((version, "Pro Max" in a["name"], a["name"], a["udid"]))
 choix.sort()
 print(choix[-1][3], choix[-1][2])')
