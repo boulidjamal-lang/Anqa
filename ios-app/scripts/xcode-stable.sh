@@ -6,12 +6,23 @@
 # sont écartées, et le rang se fait sur le numéro de version de l'app
 # (CFBundleShortVersionString), pas sur son nom.
 set -euo pipefail
-XC=$(for x in /Applications/Xcode*.app; do
-       r=$(cd "$x" 2>/dev/null && pwd -P) || continue
-       case "$r" in *[Bb]eta*|*_[Rr][Cc]*|*[Rr]elease*[Cc]andidate*) continue ;; esac
-       v=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$r/Contents/Info.plist" 2>/dev/null) || continue
-       echo "$v $r"
-     done | sort -uV | tail -1 | cut -d' ' -f2-)
+
+# Chaque app Xcode réelle et stable, en « version chemin ». (Une fonction, pas
+# une substitution $( ) : le bash 3.2 de macOS ne lit pas un « case » écrit
+# à l'intérieur d'une substitution.)
+candidats() {
+  local x r v
+  for x in /Applications/Xcode*.app; do
+    r=$(cd "$x" 2>/dev/null && pwd -P) || continue
+    case "$r" in
+      *[Bb]eta*|*_[Rr][Cc]*|*[Rr]elease*[Cc]andidate*) continue ;;
+    esac
+    v=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$r/Contents/Info.plist" 2>/dev/null) || continue
+    echo "$v $r"
+  done
+}
+
+XC=$(candidats | sort -uV | tail -1 | cut -d' ' -f2-)
 if [ -z "$XC" ]; then echo "::error::Aucun Xcode stable sur cette machine"; exit 1; fi
 sudo xcode-select -s "$XC"
 xcodebuild -version
