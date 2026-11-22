@@ -39,10 +39,14 @@ env:
   WEB_REF: ${{ inputs.web || 'base-build-33' }}
   BUNDLE_ID: com.jambou.askesis
 
+# Les deux jobs tournent sur l'image xcode-27 de GitHub (macOS 27, Xcode 27) :
+# dès avril 2027, App Store Connect n'accepte plus que les apps compilées avec
+# le SDK iOS 27 (avertissement ITMS-90725 du build 76), et l'image macos-latest
+# s'arrête à Xcode 26.6.
 jobs:
   verifier:
     name: Compiler et photographier dans le simulateur
-    runs-on: macos-latest
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: write   # publier les captures sur la branche captures-ios
@@ -66,11 +70,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Xcode le plus récent (hors bêta)
-        run: |
-          XC=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|_rc' | sort -V | tail -1)
-          sudo xcode-select -s "$XC"
-          xcodebuild -version
+      - name: Xcode stable le plus récent (hors bêta)
+        run: bash scripts/xcode-stable.sh
 
       - name: Préparer l'appli (version capture) et le projet iOS
         run: |
@@ -116,7 +117,7 @@ jobs:
     name: Envoyer sur App Store Connect
     needs: verifier
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.app_store }}
-    runs-on: macos-latest
+    runs-on: xcode-27
     timeout-minutes: 60
     defaults:
       run:
@@ -148,8 +149,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Xcode le plus récent (hors bêta)
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|_rc' | sort -V | tail -1)"
+      - name: Xcode stable le plus récent (hors bêta)
+        run: bash scripts/xcode-stable.sh
 
       - name: Préparer l'appli (version livrée) et le projet iOS
         run: |
