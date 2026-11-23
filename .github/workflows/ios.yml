@@ -20,6 +20,10 @@ on:
         description: "Envoyer aussi sur App Store Connect, pour l'App Store (compte Apple et secrets nécessaires)"
         type: boolean
         default: false
+      plantages:
+        description: "Seulement lire les plantages partagés depuis TestFlight (rien n'est compilé)"
+        type: boolean
+        default: false
   push:
     branches: [claude/html-to-iphone-app-cl9sj7]
     paths:
@@ -46,6 +50,7 @@ env:
 jobs:
   verifier:
     name: Compiler et photographier dans le simulateur
+    if: ${{ !inputs.plantages }}
     runs-on: xcode-27
     timeout-minutes: 60
     permissions:
@@ -179,3 +184,32 @@ jobs:
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" "${AUTH[@]}"
           rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+  # Quand l'app se ferme d'un coup, iOS propose au testeur TestFlight de partager le rapport : ce job les lit
+  # (cause de l'arrêt, pile du fil qui a planté) sans rien compiler. Rapports complets dans l'artefact « plantages ».
+  plantages:
+    name: Plantages partagés depuis TestFlight
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.plantages }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ios-app
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Lire les rapports de plantage (API App Store Connect)
+        run: node scripts/plantages-testflight.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plantages
+          path: ios-app/plantages/
+          if-no-files-found: ignore
+          retention-days: 7
