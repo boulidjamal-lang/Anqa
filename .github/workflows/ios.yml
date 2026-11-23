@@ -24,6 +24,11 @@ on:
         description: "Seulement lire les plantages partagés depuis TestFlight (rien n'est compilé)"
         type: boolean
         default: false
+      image:
+        description: "Mac de compilation : macos-latest (Xcode 26) ou xcode-27 (Xcode 27)"
+        type: choice
+        options: [macos-latest, xcode-27]
+        default: macos-latest
   push:
     branches: [claude/html-to-iphone-app-cl9sj7]
     paths:
@@ -43,15 +48,20 @@ env:
   WEB_REF: ${{ inputs.web || 'base-build-33' }}
   BUNDLE_ID: com.jambou.askesis
 
-# Les deux jobs tournent sur l'image xcode-27 de GitHub (macOS 27, Xcode 27) :
-# dès avril 2027, App Store Connect n'accepte plus que les apps compilées avec
-# le SDK iOS 27 (avertissement ITMS-90725 du build 76), et l'image macos-latest
-# s'arrête à Xcode 26.6.
+# Mac de compilation (entrée « image ») : macos-latest (Xcode 26) par défaut.
+# Le build 81, compilé avec Xcode 27.2 (SDK iOS 27.2) sur l'image xcode-27,
+# se fermait 3 s après son ouverture sur un iPhone en iOS 27.2 bêta
+# (24B5084k) : une comparaison de dates du module Santé y appelle une fonction
+# système que cette bêta n'a pas encore (adresse nulle, « CODESIGNING Invalid
+# Page »). Le même code compilé avec Xcode 26 (build 76) tournait sur ce
+# téléphone. L'image xcode-27 reste au choix ; elle redevient le défaut avant
+# avril 2027, quand App Store Connect n'acceptera plus que le SDK iOS 27
+# (avertissement ITMS-90725, non bloquant d'ici là).
 jobs:
   verifier:
     name: Compiler et photographier dans le simulateur
     if: ${{ !inputs.plantages }}
-    runs-on: xcode-27
+    runs-on: ${{ inputs.image || 'macos-latest' }}
     timeout-minutes: 60
     permissions:
       contents: write   # publier les captures sur la branche captures-ios
@@ -122,7 +132,7 @@ jobs:
     name: Envoyer sur App Store Connect
     needs: verifier
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.app_store }}
-    runs-on: xcode-27
+    runs-on: ${{ inputs.image || 'macos-latest' }}
     timeout-minutes: 60
     defaults:
       run:
