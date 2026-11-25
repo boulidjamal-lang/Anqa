@@ -4,7 +4,9 @@ import ActivityKit
 
 /* Extension « SeanceEnDirect » : la séance en cours d'Askēsis sur l'écran
    verrouillé et dans la Dynamic Island. Les chronos (séance, repos) sont
-   tenus par le système (Text(timerInterval:)) : rien à rafraîchir. */
+   tenus par le système (Text(timerInterval:)) : rien à rafraîchir.
+   Séance laissée en plan : 30 min après la dernière action, l'activité est
+   périmée (isStale) et s'affiche « En pause », sans chrono. */
 
 private let rose = Color(red: 1.0, green: 0.416, blue: 0.663)
 private let symbole = "figure.strengthtraining.traditional"
@@ -22,7 +24,7 @@ struct AskesisWidgets: WidgetBundle {
 struct SeanceEnDirect: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: SeanceAttributs.self) { contexte in
-            VueEcranVerrouille(attributs: contexte.attributes, etat: contexte.state)
+            VueEcranVerrouille(attributs: contexte.attributes, etat: contexte.state, enPause: contexte.isStale)
                 .activityBackgroundTint(Color.black.opacity(0.82))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { contexte in
@@ -34,12 +36,12 @@ struct SeanceEnDirect: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Chrono(attributs: contexte.attributes, etat: contexte.state)
+                    Chrono(attributs: contexte.attributes, etat: contexte.state, enPause: contexte.isStale)
                         .font(.title3.weight(.semibold))
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(contexte.state.detail)
+                        Text(contexte.isStale ? "Ouvre Askēsis pour la terminer" : contexte.state.detail)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -49,7 +51,7 @@ struct SeanceEnDirect: Widget {
             } compactLeading: {
                 Image(systemName: symbole).foregroundStyle(rose)
             } compactTrailing: {
-                Chrono(attributs: contexte.attributes, etat: contexte.state)
+                Chrono(attributs: contexte.attributes, etat: contexte.state, enPause: contexte.isStale, court: true)
                     .font(.caption.weight(.semibold))
                     .frame(maxWidth: 52)
             } minimal: {
@@ -60,19 +62,27 @@ struct SeanceEnDirect: Widget {
     }
 }
 
-/// Le repos en cours en compte à rebours (rose), sinon le temps de séance.
+/// Le repos en cours en compte à rebours (rose), sinon le temps de séance
+/// (depuis `chronoDepuis` : le début, décalé des temps morts) ; « En pause »
+/// quand l'activité est périmée.
 private struct Chrono: View {
     let attributs: SeanceAttributs
     let etat: SeanceAttributs.ContentState
+    var enPause: Bool = false
+    var court: Bool = false
 
     var body: some View {
-        if let fin = etat.reposFin, fin > Date() {
+        if enPause {
+            Text(court ? "Pause" : "En pause")
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(.secondary)
+        } else if let fin = etat.reposFin, fin > Date() {
             Text(timerInterval: Date()...fin, countsDown: true)
                 .monospacedDigit()
                 .multilineTextAlignment(.trailing)
                 .foregroundStyle(rose)
         } else {
-            Text(timerInterval: attributs.debut...Date.distantFuture, countsDown: false)
+            Text(timerInterval: (etat.chronoDepuis ?? attributs.debut)...Date.distantFuture, countsDown: false)
                 .monospacedDigit()
                 .multilineTextAlignment(.trailing)
         }
@@ -91,6 +101,7 @@ private struct Progression: View {
 private struct VueEcranVerrouille: View {
     let attributs: SeanceAttributs
     let etat: SeanceAttributs.ContentState
+    var enPause: Bool = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
@@ -106,7 +117,7 @@ private struct VueEcranVerrouille: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Text(etat.detail)
+                Text(enPause ? "Ouvre Askēsis pour la terminer" : etat.detail)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
@@ -117,13 +128,13 @@ private struct VueEcranVerrouille: View {
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
-                if let fin = etat.reposFin, fin > Date() {
+                if !enPause, let fin = etat.reposFin, fin > Date() {
                     Text("Repos")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.7))
                 }
-                Chrono(attributs: attributs, etat: etat)
-                    .font(.title2.weight(.semibold))
+                Chrono(attributs: attributs, etat: etat, enPause: enPause)
+                    .font(enPause ? .headline : .title2.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: 96, alignment: .trailing)
             }

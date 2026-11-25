@@ -4,9 +4,14 @@ import Capacitor
 
 /* Module « ActiviteSeance » : la séance en cours en activité en direct
    (écran verrouillé et Dynamic Island), pilotée par la page :
-   - demarrer({ titre, debut, detail, seriesFaites, seriesTotal, reposFin })
+   - demarrer({ titre, debut, detail, seriesFaites, seriesTotal, reposFin, depuis, perimeLe })
    - maj({ … })   : série cochée, repos qui démarre
    - terminer()
+   `depuis` : d'où part le chrono (le début, décalé des temps morts).
+   `perimeLe` : 30 min après la dernière action ; passé ce moment, iOS
+   marque l'activité périmée et elle s'affiche « En pause » au lieu d'un
+   chrono qui tournerait toute la nuit sur une séance oubliée (l'app ne peut
+   pas la retirer elle-même tant qu'elle n'est pas rouverte).
    Les dates arrivent en millisecondes (Date.now() côté page). Sans
    autorisation (Réglages › Askēsis › Activités en direct) ou avant iOS
    16.2, rien ne s'affiche et la page n'en sait rien. */
@@ -26,6 +31,7 @@ public class ActiviteSeancePlugin: CAPPlugin, CAPBridgedPlugin {
         let titre = call.getString("titre") ?? "Séance"
         let debut = Self.date(call.getDouble("debut")) ?? Date()
         let etat = Self.etat(call)
+        let perime = Self.date(call.getDouble("perimeLe"))
         Task { @MainActor in
             // Une seule séance à la fois : la précédente s'efface.
             for activite in Activity<SeanceAttributs>.activities {
@@ -33,7 +39,7 @@ public class ActiviteSeancePlugin: CAPPlugin, CAPBridgedPlugin {
             }
             do {
                 _ = try Activity.request(attributes: SeanceAttributs(titre: titre, debut: debut),
-                                         content: ActivityContent(state: etat, staleDate: nil),
+                                         content: ActivityContent(state: etat, staleDate: perime),
                                          pushType: nil)
                 call.resolve(["actif": true])
             } catch {
@@ -45,9 +51,10 @@ public class ActiviteSeancePlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func maj(_ call: CAPPluginCall) {
         guard #available(iOS 16.2, *) else { call.resolve(); return }
         let etat = Self.etat(call)
+        let perime = Self.date(call.getDouble("perimeLe"))
         Task { @MainActor in
             for activite in Activity<SeanceAttributs>.activities {
-                await activite.update(ActivityContent(state: etat, staleDate: nil))
+                await activite.update(ActivityContent(state: etat, staleDate: perime))
             }
             call.resolve()
         }
@@ -73,6 +80,7 @@ public class ActiviteSeancePlugin: CAPPlugin, CAPBridgedPlugin {
         SeanceAttributs.ContentState(detail: call.getString("detail") ?? "",
                                      seriesFaites: call.getInt("seriesFaites") ?? 0,
                                      seriesTotal: call.getInt("seriesTotal") ?? 0,
-                                     reposFin: date(call.getDouble("reposFin")))
+                                     reposFin: date(call.getDouble("reposFin")),
+                                     chronoDepuis: date(call.getDouble("depuis")))
     }
 }

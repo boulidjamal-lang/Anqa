@@ -14,6 +14,9 @@ struct SeanceAttributs: ActivityAttributes {
         var seriesTotal: Int
         /// Fin du repos en cours (compte à rebours), s'il y en a un.
         var reposFin: Date?
+        /// D'où part le chrono : le début de la séance, décalé des temps
+        /// morts d'une séance laissée en plan puis reprise. Absent : le début.
+        var chronoDepuis: Date?
     }
 
     /// Nom du programme (« Push », « Séance libre »).
