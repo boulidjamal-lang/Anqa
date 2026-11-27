@@ -64,9 +64,10 @@ if (existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', '
 // Les vidéos d'exercice filmées avec le corps 3D (crédit CC BY affiché sous chaque vidéo) : copiées quand la version
 // embarquée les a, pour qu'elles se lisent sans réseau.
 if (existsSync(join(SOURCE, 'assets', 'videos-corps'))) cpSync(join(SOURCE, 'assets', 'videos-corps'), join(WWW, 'assets', 'videos-corps'), { recursive: true });
-// Les vidéos SmartWorkout (contenus d'un autre éditeur, sans licence) ne sont pas dans l'app. Le site a retiré leurs
-// tables de assets/donnees.js ; une version du site plus ancienne les a encore : elles sont alors vidées ici.
-{
+// Les vidéos SmartWorkout (contenus d'un autre éditeur, sans licence) : en bêta, l'appli les lit depuis leurs serveurs
+// (interrupteur VIDEOS_SW_BETA dans index.html) et leurs tables restent. SANS_VIDEOS_SW=1 les vide, comme avant la bêta
+// (à faire avant toute sortie sur l'App Store).
+if (process.env.SANS_VIDEOS_SW === '1') {
   const f = join(WWW, 'assets', 'donnees.js');
   let d = readFileSync(f, 'utf8');
   for (const nom of ['VIDEOS_SMARTWORKOUT', 'SW_IMAGE_VERS_VIDEO']) {
