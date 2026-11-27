@@ -61,6 +61,9 @@ if (existsSync(join(SOURCE, 'assets', 'styles.css'))) cpSync(join(SOURCE, 'asset
 // L'atlas musculaire 3D (moteur, mouvements, modèle et sa notice de licence) : copié quand la version embarquée l'a.
 // Tout est local : l'atlas s'ouvre sans réseau.
 if (existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', 'atlas'), join(WWW, 'assets', 'atlas'), { recursive: true });
+// Les vidéos d'exercice filmées avec le corps 3D (crédit CC BY affiché sous chaque vidéo) : copiées quand la version
+// embarquée les a, pour qu'elles se lisent sans réseau.
+if (existsSync(join(SOURCE, 'assets', 'videos-corps'))) cpSync(join(SOURCE, 'assets', 'videos-corps'), join(WWW, 'assets', 'videos-corps'), { recursive: true });
 // Les vidéos SmartWorkout (contenus d'un autre éditeur, sans licence) ne sont pas dans l'app. Le site a retiré leurs
 // tables de assets/donnees.js ; une version du site plus ancienne les a encore : elles sont alors vidées ici.
 {
