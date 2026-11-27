@@ -16,7 +16,9 @@
     const squat = () => (toutesLesExercices().find(e => /^squat avec barre$/i.test(e.nom)) || toutesLesExercices().find(e => mouvementExercice(e.id)) || {}).id;
     ECRANS.push('atlas', 'atlas-exercice');
     MONTRER.atlas = () => montrerAtlas(null);
-    MONTRER['atlas-exercice'] = () => montrerAtlas(squat());
+    // Mouvements 3D coupés (MOUVEMENTS_3D, bêta des vidéos SmartWorkout) : l'atlas des muscles seul, sous le même verdict.
+    const m3d = () => typeof MOUVEMENTS_3D === 'undefined' || MOUVEMENTS_3D;
+    MONTRER['atlas-exercice'] = () => m3d() ? montrerAtlas(squat()) : montrerAtlas(null, 'atlas-exercice');
     // La fiche d'un exercice montre son mouvement d'elle-même, quand la version embarquée de l'appli web le fait
     // (captures-simulateur.sh ajoute le même écran quand index.html contient monterMouvementFiche).
     // La fiche montrée est celle du développé militaire (à défaut, le squat) : un geste bras au-dessus de la tête, là où
@@ -62,9 +64,9 @@
      graphique ; sur un exercice, le mouvement doit tourner. Sinon la compilation échoue (CAPTURE:erreur), et rien
      n'est envoyé sur App Store Connect. Si le simulateur ne donne pas WebGL 2, on le dit sans échouer : l'atlas
      n'est alors pas vérifié ici. */
-  async function montrerAtlas(exercice) {
+  async function montrerAtlas(exercice, nom) {
     const pause = ms => new Promise(fin => setTimeout(fin, ms));
-    const quoi = exercice ? 'atlas-exercice' : 'atlas';
+    const quoi = nom || (exercice ? 'atlas-exercice' : 'atlas');
     allerA(exercice ? 'seance' : 'repas'); renderApp();
     const essai = document.createElement('canvas').getContext('webgl2');
     if (!essai) { console.log('CAPTURE:' + quoi + '-sans-webgl2 (ce simulateur ne donne pas WebGL 2 : atlas non vérifié ici)'); return; }
@@ -122,6 +124,17 @@
     const essai = document.createElement('canvas').getContext('webgl2');
     if (!essai) { console.log('CAPTURE:atlas-fiche-sans-webgl2 (ce simulateur ne donne pas WebGL 2 : fiche non vérifiée ici)'); return; }
     const perdre = essai.getExtension('WEBGL_lose_context'); if (perdre) perdre.loseContext();
+    // Mouvements 3D coupés (MOUVEMENTS_3D, bêta des vidéos SmartWorkout) : la fiche montre la vidéo à la place ; on
+    // vérifie alors qu'elle se lit, et l'atlas (sans mouvement) passe toujours devant la fiche.
+    if (typeof MOUVEMENTS_3D !== 'undefined' && !MOUVEMENTS_3D) {
+      const avecVideo = (toutesLesExercices().find(e => e.id === 'e39' && videoExercice(e)) || toutesLesExercices().find(e => estVideoSmartWorkout(videoExercice(e))) || {}).id;
+      afficherFicheExerciceBiblio(avecVideo || id); choisirOngletFiche('technique');
+      let v = null;
+      for (let k = 0; k < 40 && !(v && v.readyState >= 2); k++) { v = document.querySelector('#fiche-exercice-container video'); await pause(250); }
+      if (!v) { console.log("CAPTURE:erreur la fiche d'un exercice ne montre ni mouvement ni vidéo dans ce WebKit"); return; }
+      console.log('CAPTURE:atlas-fiche-ok ' + JSON.stringify({ video: v.currentSrc || v.getAttribute('src'), pret: v.readyState, mouvements_3d: false }));
+      return;
+    }
     const debut = Date.now();
     afficherFicheExerciceBiblio(id);
     // Monté, et une première image dessinée (15 s au plus).
@@ -313,6 +326,21 @@
   async function verifierMiniatures() {
     if (typeof animationVignette3D !== 'function') { console.log('CAPTURE:miniatures-absentes (version sans miniatures animées)'); return; }
     const pause = ms => new Promise(fin => setTimeout(fin, ms));
+    if (typeof MOUVEMENTS_3D !== 'undefined' && !MOUVEMENTS_3D) {
+      // Bêta : les listes montrent les aperçus SmartWorkout (images fixes, fichiers de l'app) ; elles doivent s'afficher.
+      fermerFenetres(); allerA('seance'); ouvrirBibliotheque();
+      const debut = Date.now(), liste = () => document.getElementById('picker-liste-exercices');
+      let imgs = [];
+      while (Date.now() - debut < 15000) {
+        imgs = [...liste().querySelectorAll('.exo-ligne-vignette img')];
+        if (imgs.some(i => i.complete && i.naturalWidth > 0)) break;
+        await pause(250);
+      }
+      const bilan = { apres_ms: Date.now() - debut, images: imgs.length, images_chargees: imgs.filter(i => i.complete && i.naturalWidth > 0).length, sources: imgs.slice(0, 2).map(i => i.getAttribute('src')), mouvements_3d: false };
+      fermerFenetres();
+      console.log((bilan.images_chargees ? 'CAPTURE:miniatures-fixes ' : "CAPTURE:erreur les miniatures des exercices : aucune image ne s'affiche ") + JSON.stringify(bilan));
+      return;
+    }
     fermerFenetres();
     allerA('seance'); ouvrirBibliotheque();
     const debut = Date.now(), liste = () => document.getElementById('picker-liste-exercices'), animees = vignettes3DAnimees();
