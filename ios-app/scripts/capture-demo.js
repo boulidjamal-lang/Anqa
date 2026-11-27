@@ -12,7 +12,8 @@
   };
   // L'atlas musculaire 3D, quand la version embarquée de l'appli web l'a : sur la carte de la semaine, puis sur un
   // exercice animé (captures-simulateur.sh ajoute les deux mêmes écrans quand l'app contient assets/atlas).
-  if (typeof ouvrirAtlas === 'function') {
+  // 3D coupée (ATLAS_3D = false) : ni atlas ni fiche 3D à photographier (l'app ne les embarque pas).
+  if (typeof ouvrirAtlas === 'function' && (typeof ATLAS_3D === 'undefined' || ATLAS_3D)) {
     const squat = () => (toutesLesExercices().find(e => /^squat avec barre$/i.test(e.nom)) || toutesLesExercices().find(e => mouvementExercice(e.id)) || {}).id;
     ECRANS.push('atlas', 'atlas-exercice');
     MONTRER.atlas = () => montrerAtlas(null);

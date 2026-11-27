@@ -60,7 +60,10 @@ if (existsSync(join(SOURCE, 'assets', 'recettes.js'))) cpSync(join(SOURCE, 'asse
 if (existsSync(join(SOURCE, 'assets', 'styles.css'))) cpSync(join(SOURCE, 'assets', 'styles.css'), join(WWW, 'assets', 'styles.css'));
 // L'atlas musculaire 3D (moteur, mouvements, modèle et sa notice de licence) : copié quand la version embarquée l'a.
 // Tout est local : l'atlas s'ouvre sans réseau.
-if (existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', 'atlas'), join(WWW, 'assets', 'atlas'), { recursive: true });
+// 3D coupée dans la version embarquée (« let ATLAS_3D = false » dans index.html) : l'atlas n'est pas copié (app plus
+// légère, et les captures du simulateur sautent alors les écrans 3D).
+const sansAtlas = /^let ATLAS_3D = false;/m.test(readFileSync(join(SOURCE, 'index.html'), 'utf8'));
+if (!sansAtlas && existsSync(join(SOURCE, 'assets', 'atlas'))) cpSync(join(SOURCE, 'assets', 'atlas'), join(WWW, 'assets', 'atlas'), { recursive: true });
 // Les vidéos d'exercice filmées avec le corps 3D (crédit CC BY affiché sous chaque vidéo) : copiées quand la version
 // embarquée les a, pour qu'elles se lisent sans réseau.
 if (existsSync(join(SOURCE, 'assets', 'videos-corps'))) cpSync(join(SOURCE, 'assets', 'videos-corps'), join(WWW, 'assets', 'videos-corps'), { recursive: true });
