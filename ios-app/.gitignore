@@ -1,8 +1,10 @@
 node_modules/
-
-# Généré par `npx cap add ios` (ok de committer ios/, mais pas ces artefacts locaux)
-ios/App/Pods/
+# Construits à partir du dépôt Anqaa par scripts/preparer-www.mjs
+www/
+.source/
+# Artefacts de compilation
 ios/App/build/
 ios/DerivedData/
 ios/**/xcuserdata/
-ios/.build/
+*.ipa
+*.xcarchive
