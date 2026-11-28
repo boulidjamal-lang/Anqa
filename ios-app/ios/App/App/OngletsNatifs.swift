@@ -91,7 +91,8 @@ final class OngletsControleur: UITabBarController, UITabBarControllerDelegate {
         plus.image = UIImage(systemName: "plus")
         ongletPlus = plus
         tabs = ongletsEcrans + [plus]
-        tabBarMinimizeBehavior = .onScrollDown
+        // Toujours dépliée : elle ne se replie plus en bouton au défilement.
+        tabBarMinimizeBehavior = .never
         tabBar.tintColor = ACCENT_ASKESIS
         installerPage(dans: "repas")
         // Cachée jusqu'à ce que la page soit prête (écran de démarrage, connexion).
