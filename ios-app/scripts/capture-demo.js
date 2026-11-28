@@ -376,6 +376,9 @@
     const borne = (p, ms) => Promise.race([p, pause(ms).then(() => ({ delai: true }))]);
     const retour = WITHINGS_REDIRECT_URI, bilan = {};
     fermerFenetres();
+    // Depuis Profil, comme un vrai utilisateur : après la dernière capture, la page restait sur l'onglet
+    // « Ajouter » (hors de la fenêtre), et la feuille ouverte de là ne chargeait rien au premier passage.
+    if (typeof allerA === 'function') { allerA('reglages'); await pause(1500); }
     // 1) Adresse de retour d'emblée. La première feuille fait démarrer à WebKit une session à part (rien n'en est
     //    gardé) : sur une machine de compilation qui cale, ce démarrage a passé 10 s (run 74, passe claire ; la même
     //    version répondait une heure plus tôt, et dans la passe sombre). Un délai dépassé est donc refait une fois,
