@@ -40,7 +40,11 @@ public class ConnexionWebPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Une connexion est déjà ouverte", "occupe")
                 return
             }
-            guard var dessus = self.bridge?.viewController?.view.window?.rootViewController else {
+            // La page peut être un instant hors de la fenêtre (déplacée d'un onglet
+            // à l'autre) : on présente alors depuis la fenêtre active de l'app.
+            let fenetre = self.bridge?.viewController?.view.window
+                ?? UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first
+            guard var dessus = fenetre?.rootViewController else {
                 call.reject("Indisponible", "indisponible")
                 return
             }
