@@ -1,0 +1,147 @@
+2026-11-28 11:50:56.802 App[22640:68491] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/C7E47F48-6A76-4B9F-AC71-6B8190967A94/data/Containers/Data/Application/2ABB7927-FD8F-480E-8080-590BCA06866E/Library/Cookies/com.jambou.askesis.binarycookies
+2026-11-28 11:50:56.888 App[22640:68491] KeyboardPlugin: no resize
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  App addListener 27297301
+⚡️  To Native ->  App addListener 27297302
+⚡️  To Native ->  App getLaunchUrl 27297303
+⚡️  To Native ->  Resume intention 27297304
+⚡️  To Native ->  LocalNotifications addListener 27297305
+⚡️  To Native ->  ScreenOrientation lock 27297306
+⚡️  To Native ->  NativePurchases addListener 27297307
+⚡️  TO JS undefined
+⚡️  TO JS {"url":""}
+⚡️  TO JS undefined
+⚡️  WebView loaded
+⚡️  To Native ->  StatusBar setStyle 27297308
+⚡️  TO JS {}
+⚡️  To Native ->  Onglets apparence 27297309
+⚡️  To Native ->  Onglets etat 27297310
+⚡️  TO JS undefined
+⚡️  TO JS {"page":"repas","actif":true,"onglet":"repas"}
+⚡️  To Native ->  Onglets addListener 27297311
+⚡️  To Native ->  Onglets addListener 27297312
+⚡️  To Native ->  Onglets addListener 27297313
+⚡️  To Native ->  Onglets addListener 27297314
+⚡️  To Native ->  Onglets selectionner 27297315
+⚡️  To Native ->  Onglets afficher 27297316
+⚡️  To Native ->  Onglets plus 27297317
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Resume publier 27297318
+⚡️  TO JS {"publie":true}
+⚡️  To Native ->  SplashScreen hide 27297319
+⚡️  TO JS undefined
+⚡️  To Native ->  SplashScreen hide 27297320
+⚡️  TO JS undefined
+⚡️  To Native ->  StatusBar setStyle 27297321
+⚡️  To Native ->  Onglets selectionner 27297322
+⚡️  To Native ->  Onglets afficher 27297323
+⚡️  To Native ->  Onglets simulerToucher 27297324
+⚡️  TO JS {}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS {"nom":"stats"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 27297325
+⚡️  To Native ->  Onglets plus 27297326
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Resume publier 27297327
+⚡️  TO JS {"publie":true}
+⚡️  [log] - CAPTURE:onglets-ok
+⚡️  To Native ->  Onglets selectionner 27297328
+⚡️  To Native ->  Onglets plus 27297329
+⚡️  To Native ->  Onglets selectionner 27297330
+⚡️  To Native ->  Onglets plus 27297331
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets etat 27297332
+⚡️  TO JS {"onglet":"repas","page":"repas","actif":true}
+⚡️  [log] - CAPTURE:onglets-sans-boucle
+⚡️  To Native ->  Onglets selectionner 27297333
+⚡️  TO JS undefined
+⚡️  To Native ->  Scanner etat 27297334
+⚡️  TO JS {"camera":false}
+⚡️  [log] - CAPTURE:scanner-ok (caméra : false)
+⚡️  To Native ->  Onglets selectionner 27297335
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:repas
+⚡️  To Native ->  Onglets selectionner 27297336
+⚡️  To Native ->  Onglets plus 27297337
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:seance
+⚡️  To Native ->  Onglets selectionner 27297338
+⚡️  To Native ->  Onglets plus 27297339
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:stats
+⚡️  To Native ->  Onglets selectionner 27297340
+⚡️  To Native ->  Onglets plus 27297341
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:reglages
+⚡️  To Native ->  Onglets selectionner 27297342
+⚡️  To Native ->  Onglets plus 27297343
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 27297344
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:feuille
+⚡️  To Native ->  Onglets selectionner 27297345
+⚡️  To Native ->  Onglets afficher 27297346
+⚡️  To Native ->  Onglets plus 27297347
+⚡️  To Native ->  ActiviteSeance demarrer 27297348
+⚡️  To Native ->  KeepAwake keepAwake 27297349
+⚡️  To Native ->  Onglets selectionner 27297350
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets afficher 27297351
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 27297352
+⚡️  To Native ->  Onglets afficher 27297353
+⚡️  To Native ->  Onglets plus 27297354
+⚡️  To Native ->  Onglets accessoire 27297355
+⚡️  To Native ->  Resume publier 27297356
+⚡️  TO JS {"publie":true}
+⚡️  TO JS {"actif":true}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:accessoire
+⚡️  To Native ->  Onglets selectionner 27297357
+⚡️  To Native ->  Onglets afficher 27297358
+⚡️  To Native ->  Onglets plus 27297359
+⚡️  To Native ->  Onglets accessoire 27297360
+⚡️  [log] - CAPTURE:miniatures-fixes {"apres_ms":0,"images":40,"images_chargees":1,"sources":["assets/videos-sw/ceb84676-82fe-4281-81b2-8aef624c83ba.jpg","assets/videos-sw/30f3160a-3a57-426a-a3b9-4eed573310f8.jpg"],"mouvements_3d":false}
+⚡️  TO JS undefined
+⚡️  To Native ->  Onglets selectionner 27297361
+⚡️  To Native ->  Onglets afficher 27297362
+⚡️  To Native ->  Onglets plus 27297363
+⚡️  To Native ->  Onglets accessoire 27297364
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  ConnexionWeb ouvrir 27297365
+⚡️  TO JS {"url":"https:\/\/boulidjamal-lang.github.io\/mon-coach\/?code=essai-direct&state=s1"}
+⚡️  To Native ->  ConnexionWeb ouvrir 27297366
+⚡️  TO JS {"url":"https:\/\/boulidjamal-lang.github.io\/mon-coach\/?code=essai-redirige&state=s2"}
+⚡️  To Native ->  ConnexionWeb ouvrir 27297367
+⚡️  [log] - CAPTURE:withings-feuille
+⚡️  To Native ->  ConnexionWeb fermer 27297368
+⚡️  TO JS {"annule":true}
+⚡️  TO JS undefined
+⚡️  [log] - CAPTURE:connexion-web-ok {"directe":"https://boulidjamal-lang.github.io/mon-coach/?code=essai-direct&state=s1","redirection":"ok","fermee":true}
+⚡️  [log] - CAPTURE:fin
+com.jambou.askesis: 22640
